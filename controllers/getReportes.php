@@ -3,14 +3,21 @@
 require_once __DIR__ . '/ReporteController.php';
 require_once __DIR__ . '/../views/shared/PantallaMensajeSistema.php';
 
+// Funciones de validación
 function validarBoton($nombreBoton) {
     return isset($_POST[$nombreBoton]);
+}
+
+function validarTexto($texto) {
+    return (trim($texto) !== '');
 }
 
 $objControl = new ReporteController();
 $objMsg = new PantallaMensajeSistema();
 
-// --- ZONA GET ---
+// ============================================
+// ZONA GET (Operaciones de lectura)
+// ============================================
 $op = $_GET['op'] ?? 'panel';
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -18,8 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     switch ($op) {
 
         case 'panel':
-            // Si hay búsqueda, la maneja el controlador automáticamente
-            $objControl->mostrarReporte('todos');
+        case 'menu':
+            // Mostrar interfaz unificada de reportes
+            $objControl->gestionar();
             exit;
 
         default:
@@ -28,25 +36,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 }
 
+// ============================================
+// ZONA POST (Botones de formularios)
+// ============================================
 
-// --- ZONA POST (Botones de Filtro) ---
+// 1. Botón: Buscar
+if (validarBoton('btnBuscar')) {
+    $nombre = $_POST['txtBuscar'] ?? '';
 
-// 1. Filtrar Entradas
-if (validarBoton('btnFiltrarEntradas')) {
-    $ini = $_POST['fecha_inicio'] ?? '';
-    $fin = $_POST['fecha_fin'] ?? '';
-    $objControl->mostrarReporte('entrada', $ini, $fin);
+    // Validación según documento: "Campo vacío"
+    if (!validarTexto($nombre)) {
+        $objMsg->mensajeSistemaShow(2, "Campo vacío", "getReportes.php?op=panel");
+        exit;
+    }
 
-// 2. Filtrar Salidas
-} else if (validarBoton('btnFiltrarSalidas')) {
-    $ini = $_POST['fecha_inicio'] ?? '';
-    $fin = $_POST['fecha_fin'] ?? '';
-    $objControl->mostrarReporte('salida', $ini, $fin);
+    $objControl->gestionar($nombre);
 
-// 3. Ver Todo (Reset)
-} else if (validarBoton('btnVerTodo')) {
-    $objControl->mostrarReporte('todos');
+// 2. Botón: Regresar
+} else if (validarBoton('btnRegresar')) {
+    header("Location: ../views/home/dashboard.php");
+    exit;
 
+// 3. Acceso denegado (Seguridad)
 } else {
     $objMsg->mensajeSistemaShow(3, "Acceso denegado", "../views/home/dashboard.php");
 }

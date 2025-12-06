@@ -4,22 +4,24 @@ require_once __DIR__ . '/../core/Movimiento.php';
 require_once __DIR__ . '/../core/Session.php';
 Session::verificarSesion();
 
-// 1. Recibir Filtros
+// 1. Recibir Parámetros
 $tipo = $_GET['tipo'] ?? 'todos';
-$ini  = $_GET['inicio'] ?? '';
-$fin  = $_GET['fin'] ?? '';
+$buscar = $_GET['buscar'] ?? '';
 
 // 2. Obtener Datos
 $objMov = new Movimiento();
-if ($tipo == 'todos') {
-    $data = $objMov->obtenerTodos();
+
+if ($tipo == 'entrada' || $tipo == 'salida') {
+    // Usar método con búsqueda (siempre orden DESC = más reciente primero)
+    $data = $objMov->obtenerPorTipoOrdenado($tipo, 'DESC', $buscar);
 } else {
-    $data = $objMov->obtenerPorTipo($tipo, $ini, $fin);
+    // Todos los movimientos
+    $data = $objMov->obtenerTodos();
 }
 
 // 3. Configurar cabeceras para descarga CSV compatible con Excel
 header('Content-Type: application/vnd.ms-excel; charset=utf-8');
-header('Content-Disposition: attachment; filename=reporte_'.$tipo.'.csv');
+header('Content-Disposition: attachment; filename=reporte_'.$tipo.'_'.date('Y-m-d').'.csv');
 header('Pragma: no-cache');
 header('Expires: 0');
 

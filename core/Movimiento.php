@@ -115,5 +115,36 @@ public function obtenerPorTipo($tipo, $fechaInicio = null, $fechaFin = null) {
     return $res;
 }
 
+    // [NUEVO] 4. OBTENER POR TIPO CON ORDENAMIENTO Y BÚSQUEDA (Para reportes avanzados)
+    public function obtenerPorTipoOrdenado($tipo, $orden = 'DESC', $buscar = '') {
+        $this->conectar();
+
+        $sql = "SELECT m.id, m.tipo, m.cantidad, m.fecha, m.motivo,
+                       p.nombre as producto, l.codigo_lote, u.username as usuario
+                FROM movimientos m
+                INNER JOIN lotes l ON m.lote_id = l.id
+                INNER JOIN productos p ON l.producto_id = p.id
+                LEFT JOIN usuarios u ON m.usuario_id = u.id
+                WHERE m.tipo = ?";
+
+        $params = [$tipo];
+
+        // Si hay búsqueda, agregar filtro por nombre de producto
+        if ($buscar !== '') {
+            $sql .= " AND p.nombre LIKE ?";
+            $params[] = "%$buscar%";
+        }
+
+        // Validar y aplicar ordenamiento (seguridad: solo ASC o DESC)
+        $ordenValido = ($orden === 'ASC') ? 'ASC' : 'DESC';
+        $sql .= " ORDER BY m.fecha $ordenValido";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->desconectar();
+        return $res;
+    }
+
 }
 ?>

@@ -3,36 +3,41 @@
 require_once __DIR__ . '/../core/Movimiento.php';
 require_once __DIR__ . '/../core/Session.php';
 require_once __DIR__ . '/../views/reportes/FormReportes.php';
+require_once __DIR__ . '/../views/shared/PantallaMensajeSistema.php';
 
 class ReporteController {
 
     public function __construct() {
         Session::verificarSesion();
+
+        // Validar que solo el rol "admin" puede acceder a reportes
+        $rol = $_SESSION['rol'] ?? '';
+        if ($rol !== 'admin') {
+            $objMsg = new PantallaMensajeSistema();
+            $objMsg->mensajeSistemaShow(3, "Acceso denegado. Solo el administrador puede generar reportes.", "../views/home/dashboard.php");
+            exit;
+        }
     }
 
-    // Método Único Inteligente
-    public function mostrarReporte($tipo = 'todos', $ini = '', $fin = '') {
-    $objMov = new Movimiento();
+    // ==========================================
+    // GESTIONAR - MOSTRAR INTERFAZ UNIFICADA
+    // ==========================================
+    public function gestionar($buscar = '') {
+        $objMov = new Movimiento();
 
-    // NUEVO: Si viene búsqueda, priorizamos búsqueda
-    $buscar = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
+        // Validación adicional de sesión según documento
+        if (!isset($_SESSION['usuario_id'])) {
+            $objMsg = new PantallaMensajeSistema();
+            $objMsg->mensajeSistemaShow(3, "Surgió un error. Vuelva a iniciar sesión", "../../index.php");
+            return;
+        }
 
-    if ($buscar !== '') {
-        // Búsqueda general
-        $lista = $objMov->obtenerFiltradosReporte($buscar);
-    } 
-    else if ($tipo == 'todos') {
-        $lista = $objMov->obtenerTodos();
-    } 
-    else {
-        // Entrada o salida con fechas
-        $lista = $objMov->obtenerPorTipo($tipo, $ini, $fin);
+        // Obtener datos de entradas y salidas (siempre orden DESC = más reciente primero)
+        $entradas = $objMov->obtenerPorTipoOrdenado('entrada', 'DESC', $buscar);
+        $salidas = $objMov->obtenerPorTipoOrdenado('salida', 'DESC', $buscar);
+
+        $objForm = new FormReportes();
+        $objForm->formReporteUnificadoShow($entradas, $salidas, $buscar);
     }
-
-    $objForm = new FormReportes();
-    $objForm->formReporteShow($lista, $tipo, $ini, $fin);
-}
-
-    
 }
 ?>
