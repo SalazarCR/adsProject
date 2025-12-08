@@ -8,7 +8,7 @@ class Movimiento extends Conexion {
     public function obtenerTodos() {
         $this->conectar();
         $sql = "SELECT m.id, m.tipo, m.cantidad, m.fecha, m.motivo,
-                       p.nombre as producto, l.codigo_lote, u.username as usuario
+                       p.nombre as producto, l.codigo_lote, u.username as usuario, u.nombre as nombre_usuario
                 FROM movimientos m
                 INNER JOIN lotes l ON m.lote_id = l.id
                 INNER JOIN productos p ON l.producto_id = p.id
@@ -60,30 +60,112 @@ class Movimiento extends Conexion {
     }
 
     // [NUEVO] 3. FILTRAR POR TIPO (Para Reportes de Entradas/Salidas)
-public function obtenerPorTipo($tipo, $fechaInicio = null, $fechaFin = null) {
+    public function obtenerPorTipo($tipo, $fechaInicio = null, $fechaFin = null) {
         $this->conectar();
         
         $sql = "SELECT m.id, m.tipo, m.cantidad, m.fecha, m.motivo,
-                       p.nombre as producto, l.codigo_lote, u.username as usuario
+                       p.nombre as producto, l.codigo_lote, u.username as usuario, u.nombre as nombre_usuario
                 FROM movimientos m
                 INNER JOIN lotes l ON m.lote_id = l.id
                 INNER JOIN productos p ON l.producto_id = p.id
                 LEFT JOIN usuarios u ON m.usuario_id = u.id
                 WHERE m.tipo = ?";
 
-        // Lógica de fechas
+        $params = [$tipo];
+
+        // Lógica de fechas (RF37, RF43)
         if ($fechaInicio && $fechaFin) {
-            // Aseguramos incluir todo el día final (23:59:59)
-            $sql .= " AND m.fecha BETWEEN '$fechaInicio 00:00:00' AND '$fechaFin 23:59:59'";
+            $sql .= " AND DATE(m.fecha) BETWEEN ? AND ?";
+            $params[] = $fechaInicio;
+            $params[] = $fechaFin;
+        } elseif ($fechaInicio) {
+            $sql .= " AND DATE(m.fecha) >= ?";
+            $params[] = $fechaInicio;
+        } elseif ($fechaFin) {
+            $sql .= " AND DATE(m.fecha) <= ?";
+            $params[] = $fechaFin;
         }
 
         $sql .= " ORDER BY m.fecha DESC";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$tipo]);
+        $stmt->execute($params);
         $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $this->desconectar();
         return $res;
+    }
+
+    // [NUEVO] 5. OBTENER POR TIPO CON PAGINACIÓN (RF38, RF42)
+    public function obtenerPorTipoPaginado($tipo, $fechaInicio = null, $fechaFin = null, $pagina = 1, $porPagina = 10) {
+        $this->conectar();
+        
+        $sql = "SELECT m.id, m.tipo, m.cantidad, m.fecha, m.motivo,
+                       p.nombre as producto, l.codigo_lote, u.username as usuario, u.nombre as nombre_usuario
+                FROM movimientos m
+                INNER JOIN lotes l ON m.lote_id = l.id
+                INNER JOIN productos p ON l.producto_id = p.id
+                LEFT JOIN usuarios u ON m.usuario_id = u.id
+                WHERE m.tipo = ?";
+
+        $params = [$tipo];
+
+        // Lógica de fechas (RF37, RF43)
+        if ($fechaInicio && $fechaFin) {
+            $sql .= " AND DATE(m.fecha) BETWEEN ? AND ?";
+            $params[] = $fechaInicio;
+            $params[] = $fechaFin;
+        } elseif ($fechaInicio) {
+            $sql .= " AND DATE(m.fecha) >= ?";
+            $params[] = $fechaInicio;
+        } elseif ($fechaFin) {
+            $sql .= " AND DATE(m.fecha) <= ?";
+            $params[] = $fechaFin;
+        }
+
+        $sql .= " ORDER BY m.fecha DESC";
+
+        // Paginación (RF38, RF42)
+        $offset = (int)(($pagina - 1) * $porPagina);
+        $porPagina = (int)$porPagina;
+        $sql .= " LIMIT $porPagina OFFSET $offset";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->desconectar();
+        return $res;
+    }
+
+    // [NUEVO] 6. CONTAR REGISTROS POR TIPO (Para paginación)
+    public function contarPorTipo($tipo, $fechaInicio = null, $fechaFin = null) {
+        $this->conectar();
+        
+        $sql = "SELECT COUNT(*) as total
+                FROM movimientos m
+                INNER JOIN lotes l ON m.lote_id = l.id
+                INNER JOIN productos p ON l.producto_id = p.id
+                WHERE m.tipo = ?";
+
+        $params = [$tipo];
+
+        // Lógica de fechas
+        if ($fechaInicio && $fechaFin) {
+            $sql .= " AND DATE(m.fecha) BETWEEN ? AND ?";
+            $params[] = $fechaInicio;
+            $params[] = $fechaFin;
+        } elseif ($fechaInicio) {
+            $sql .= " AND DATE(m.fecha) >= ?";
+            $params[] = $fechaInicio;
+        } elseif ($fechaFin) {
+            $sql .= " AND DATE(m.fecha) <= ?";
+            $params[] = $fechaFin;
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $res = $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->desconectar();
+        return (int)$res['total'];
     }
 
     public function obtenerFiltradosReporte($buscar) {
@@ -120,7 +202,7 @@ public function obtenerPorTipo($tipo, $fechaInicio = null, $fechaFin = null) {
         $this->conectar();
 
         $sql = "SELECT m.id, m.tipo, m.cantidad, m.fecha, m.motivo,
-                       p.nombre as producto, l.codigo_lote, u.username as usuario
+                       p.nombre as producto, l.codigo_lote, u.username as usuario, u.nombre as nombre_usuario
                 FROM movimientos m
                 INNER JOIN lotes l ON m.lote_id = l.id
                 INNER JOIN productos p ON l.producto_id = p.id

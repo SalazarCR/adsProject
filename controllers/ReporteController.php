@@ -10,34 +10,70 @@ class ReporteController {
     public function __construct() {
         Session::verificarSesion();
 
-        // Validar que solo el rol "admin" puede acceder a reportes
+        // Validar que solo el rol "admin" o "analista" puede acceder a reportes
         $rol = $_SESSION['rol'] ?? '';
-        if ($rol !== 'admin') {
+        if ($rol !== 'admin' && $rol !== 'analista') {
             $objMsg = new PantallaMensajeSistema();
-            $objMsg->mensajeSistemaShow(3, "Acceso denegado. Solo el administrador puede generar reportes.", "../views/home/dashboard.php");
+            $objMsg->mensajeSistemaShow(3, "Acceso denegado. Solo el administrador o analista puede generar reportes.", "../views/home/dashboard.php");
             exit;
         }
     }
 
     // ==========================================
-    // GESTIONAR - MOSTRAR INTERFAZ UNIFICADA
+    // 1. GESTIONAR - VISTA PRINCIPAL (LISTAR)
+    // Similar a MovimientoController::gestionar()
     // ==========================================
-    public function gestionar($buscar = '') {
+    public function gestionar() {
+        $objForm = new FormReportes();
+        $objForm->formListarReportesShow();
+    }
+
+    // ==========================================
+    // 2. MOSTRAR REPORTE DE ENTRADA
+    // Similar a MovimientoController::mostrarEntrada()
+    // ==========================================
+    public function mostrarEntrada($fechaInicio = '', $fechaFin = '', $pagina = 1) {
         $objMov = new Movimiento();
+        $porPagina = 10; // RF38: Registros paginados amigablemente
 
-        // Validación adicional de sesión según documento
-        if (!isset($_SESSION['usuario_id'])) {
-            $objMsg = new PantallaMensajeSistema();
-            $objMsg->mensajeSistemaShow(3, "Surgió un error. Vuelva a iniciar sesión", "../../index.php");
-            return;
-        }
-
-        // Obtener datos de entradas y salidas (siempre orden DESC = más reciente primero)
-        $entradas = $objMov->obtenerPorTipoOrdenado('entrada', 'DESC', $buscar);
-        $salidas = $objMov->obtenerPorTipoOrdenado('salida', 'DESC', $buscar);
+        // Obtener datos de entradas con paginación y fechas (RF37, RF38)
+        $totalRegistros = $objMov->contarPorTipo('entrada', $fechaInicio, $fechaFin);
+        $totalPaginas = ceil($totalRegistros / $porPagina);
+        $entradas = $objMov->obtenerPorTipoPaginado('entrada', $fechaInicio, $fechaFin, $pagina, $porPagina);
 
         $objForm = new FormReportes();
-        $objForm->formReporteUnificadoShow($entradas, $salidas, $buscar);
+        $objForm->formReporteEntradaShow(
+            $entradas,
+            $fechaInicio,
+            $fechaFin,
+            $pagina,
+            $totalPaginas,
+            $totalRegistros
+        );
+    }
+
+    // ==========================================
+    // 3. MOSTRAR REPORTE DE SALIDA
+    // Similar a MovimientoController::mostrarSalida()
+    // ==========================================
+    public function mostrarSalida($fechaInicio = '', $fechaFin = '', $pagina = 1) {
+        $objMov = new Movimiento();
+        $porPagina = 10; // RF42: Registros paginados amigablemente
+
+        // Obtener datos de salidas con paginación y fechas (RF42, RF43)
+        $totalRegistros = $objMov->contarPorTipo('salida', $fechaInicio, $fechaFin);
+        $totalPaginas = ceil($totalRegistros / $porPagina);
+        $salidas = $objMov->obtenerPorTipoPaginado('salida', $fechaInicio, $fechaFin, $pagina, $porPagina);
+
+        $objForm = new FormReportes();
+        $objForm->formReporteSalidaShow(
+            $salidas,
+            $fechaInicio,
+            $fechaFin,
+            $pagina,
+            $totalPaginas,
+            $totalRegistros
+        );
     }
 }
 ?>

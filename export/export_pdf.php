@@ -8,6 +8,36 @@ $tipo = $_GET['tipo'] ?? 'todos';
 $ini  = $_GET['inicio'] ?? '';
 $fin  = $_GET['fin'] ?? '';
 
+// Función auxiliar para formatear fechas
+function formatearFechaPDF($fecha) {
+    if (empty($fecha)) return '';
+    $meses = [
+        1 => 'enero', 2 => 'febrero', 3 => 'marzo', 4 => 'abril',
+        5 => 'mayo', 6 => 'junio', 7 => 'julio', 8 => 'agosto',
+        9 => 'septiembre', 10 => 'octubre', 11 => 'noviembre', 12 => 'diciembre'
+    ];
+    $timestamp = strtotime($fecha);
+    $dia = date('d', $timestamp);
+    $mes = (int)date('m', $timestamp);
+    $anio = date('Y', $timestamp);
+    return $dia . ' de ' . $meses[$mes] . ' de ' . $anio;
+}
+
+function formatearFechaHoraPDF($fechaHora) {
+    if (empty($fechaHora)) return '';
+    $meses = [
+        1 => 'enero', 2 => 'febrero', 3 => 'marzo', 4 => 'abril',
+        5 => 'mayo', 6 => 'junio', 7 => 'julio', 8 => 'agosto',
+        9 => 'septiembre', 10 => 'octubre', 11 => 'noviembre', 12 => 'diciembre'
+    ];
+    $timestamp = strtotime($fechaHora);
+    $dia = date('d', $timestamp);
+    $mes = (int)date('m', $timestamp);
+    $anio = date('Y', $timestamp);
+    $hora = date('H:i', $timestamp);
+    return $dia . ' de ' . $meses[$mes] . ' de ' . $anio . ', ' . $hora . ' hrs';
+}
+
 $objMov = new Movimiento();
 if ($tipo == 'todos') {
     $data = $objMov->obtenerTodos();
@@ -15,6 +45,9 @@ if ($tipo == 'todos') {
 } else {
     $data = $objMov->obtenerPorTipo($tipo, $ini, $fin);
     $titulo = "REPORTE DE " . strtoupper($tipo) . "S";
+    if ($ini && $fin) {
+        $titulo .= " - Del " . formatearFechaPDF($ini) . " al " . formatearFechaPDF($fin);
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -38,9 +71,9 @@ if ($tipo == 'todos') {
     <h1><?= $titulo ?></h1>
     
     <div class="info">
-        <strong>Fecha de Emisión:</strong> <?= date('d/m/Y H:i:s') ?><br>
+        <strong>Fecha de Emisión:</strong> <?= formatearFechaHoraPDF(date('Y-m-d H:i:s')) ?><br>
         <?php if($ini && $fin): ?>
-            <strong>Rango de Fechas:</strong> Del <?= $ini ?> al <?= $fin ?>
+            <strong>Período del Reporte:</strong> Del <?= formatearFechaPDF($ini) ?> al <?= formatearFechaPDF($fin) ?>
         <?php endif; ?>
         <br>
         <strong>Generado por:</strong> <?= $_SESSION['nombre'] ?? 'Sistema' ?>
@@ -61,7 +94,7 @@ if ($tipo == 'todos') {
         <tbody>
             <?php foreach ($data as $d): ?>
             <tr>
-                <td><?= $d['fecha'] ?></td>
+                <td><?= formatearFechaHoraPDF($d['fecha']) ?></td>
                 
                 <?php $clase = ($d['tipo'] == 'entrada') ? 'entrada' : 'salida'; ?>
                 <td class="<?= $clase ?>"><?= strtoupper($d['tipo']) ?></td>
@@ -70,7 +103,7 @@ if ($tipo == 'todos') {
                 <td><?= htmlspecialchars($d['codigo_lote']) ?></td>
                 <td><?= $d['cantidad'] ?></td>
                 <td><?= htmlspecialchars($d['motivo']) ?></td>
-                <td><?= htmlspecialchars($d['usuario']) ?></td>
+                <td><?= htmlspecialchars($d['nombre_usuario'] ?? $d['usuario'] ?? 'Sistema') ?></td>
             </tr>
             <?php endforeach; ?>
         </tbody>
