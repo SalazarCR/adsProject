@@ -1,0 +1,611 @@
+@startuml DesignModel_Reportes_DiagramaSecuencia
+' Diagrama de Secuencia de Diseño - Módulo Gestión de Reportes
+' Análisis riguroso del código - Patrón MVC
+' Orden: Boundary → Controller → Model
+
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+
+' ==========================================
+' PARTICIPANTES
+' ==========================================
+actor ":analista" as analista
+participant ": getReportes" as getReportes <<controller>>
+participant ": formulario" as sharedForm <<boundary>>
+participant ": formReportes" as formReportes <<boundary>>
+participant ": pantallaMensajeSistema" as msgSistema <<boundary>>
+participant ": reporteController" as ctrlReporte <<controller>>
+participant ": session" as session <<entity>>
+participant ": movimiento" as modelMov <<entity>>
+participant ": conexion" as dbConn <<entity>>
+
+' ==========================================
+' SECUENCIA 1: GESTIONAR REPORTES (Vista Principal)
+' ===========================================
+
+== 1. Acceso a Gestión de Reportes ==
+
+analista -> getReportes : GET /controllers/getReportes.php?op=listar
+activate getReportes
+
+getReportes -> ctrlReporte : new reporteController()
+activate ctrlReporte
+
+' Verificación de sesión en constructor
+ctrlReporte -> session : verificarSesion()
+activate session
+session -> session : start()
+session -> session : exists('usuario_id')
+session -->> ctrlReporte : sesion_valida
+deactivate session
+
+alt si sesion_valida = false O rol no permitido
+    ctrlReporte -> msgSistema : mensajeSistemaShow(3, "Acceso denegado...", "../views/home/dashboard.php")
+    activate msgSistema
+    msgSistema -> sharedForm : cabeceraShow()
+    activate sharedForm
+    deactivate sharedForm
+    msgSistema -> sharedForm : piePaginaShow()
+    activate sharedForm
+    deactivate sharedForm
+    deactivate msgSistema
+    deactivate ctrlReporte
+    deactivate getReportes
+else
+    ' Si sesión válida, gestionar reportes
+    getReportes -> ctrlReporte : gestionar($buscar)
+    activate ctrlReporte
+    
+    ctrlReporte -> modelMov : new Movimiento()
+    activate modelMov
+    
+    alt si $buscar !== ''
+        ctrlReporte -> modelMov : obtenerFiltrados($buscar)
+        activate modelMov
+        modelMov -> dbConn : conectar()
+        activate dbConn
+        deactivate dbConn
+        modelMov -> dbConn : desconectar()
+        activate dbConn
+        deactivate dbConn
+        modelMov -->> ctrlReporte : movimientos[]
+        deactivate modelMov
+    else
+        ctrlReporte -> modelMov : obtenerKardex()
+        activate modelMov
+        modelMov -> dbConn : conectar()
+        activate dbConn
+        deactivate dbConn
+        modelMov -> dbConn : desconectar()
+        activate dbConn
+        deactivate dbConn
+        modelMov -->> ctrlReporte : kardex[]
+        deactivate modelMov
+        
+        ctrlReporte -> modelMov : obtenerTodos()
+        activate modelMov
+        modelMov -> dbConn : conectar()
+        activate dbConn
+        deactivate dbConn
+        modelMov -> dbConn : desconectar()
+        activate dbConn
+        deactivate dbConn
+        modelMov -->> ctrlReporte : movimientos[]
+        deactivate modelMov
+    end
+    
+    deactivate modelMov
+    
+    ctrlReporte -> formReportes : new FormReportes()
+    activate formReportes
+    ctrlReporte -> formReportes : formListarReportesShow($movimientos, $kardex)
+    
+    ' Renderizado visual heredado
+    formReportes -> sharedForm : cabeceraShow()
+    activate sharedForm
+    deactivate sharedForm
+    formReportes -> sharedForm : menuShow()
+    activate sharedForm
+    deactivate sharedForm
+    
+    ' Mostrar Kardex y opciones
+    formReportes -> formReportes : formatearFechaHora($fecha)
+    
+    formReportes -> sharedForm : piePaginaShow()
+    activate sharedForm
+    deactivate sharedForm
+    
+    deactivate formReportes
+    deactivate ctrlReporte
+    deactivate ctrlReporte
+    deactivate getReportes
+end
+
+' ==========================================
+' SECUENCIA 2: BUSCAR EN VISTA PRINCIPAL
+' ===========================================
+
+== 2. Búsqueda en Vista Principal ==
+
+analista -> formReportes : ingresar texto en campo buscar
+activate formReportes
+
+formReportes -> getReportes : GET /controllers/getReportes.php?op=listar&buscar=texto
+activate getReportes
+
+getReportes -> ctrlReporte : gestionar($buscar)
+activate ctrlReporte
+
+ctrlReporte -> modelMov : obtenerFiltrados($buscar)
+activate modelMov
+modelMov -> dbConn : conectar()
+activate dbConn
+deactivate dbConn
+modelMov -> dbConn : desconectar()
+activate dbConn
+deactivate dbConn
+modelMov -->> ctrlReporte : movimientosFiltrados[]
+deactivate modelMov
+
+ctrlReporte -> formReportes : formListarReportesShow($movimientosFiltrados, [])
+activate formReportes
+formReportes -> sharedForm : cabeceraShow()
+activate sharedForm
+deactivate sharedForm
+formReportes -> sharedForm : menuShow()
+activate sharedForm
+deactivate sharedForm
+formReportes -> formReportes : formatearFechaHora($fecha)
+formReportes -> sharedForm : piePaginaShow()
+activate sharedForm
+deactivate sharedForm
+deactivate formReportes
+
+deactivate ctrlReporte
+deactivate getReportes
+deactivate formReportes
+
+' ==========================================
+' SECUENCIA 3: GENERAR REPORTE DE ENTRADA
+' ===========================================
+
+== 3. Generar Reporte de Entrada ==
+
+analista -> formReportes : click en "Generar Reporte de Entrada" (btnIrEntrada)
+activate formReportes
+
+formReportes -> getReportes : POST btnIrEntrada
+activate getReportes
+
+getReportes -> getReportes : validarBoton(btnIrEntrada)
+
+alt si validarBoton() = false
+    getReportes -> msgSistema : mensajeSistemaShow(3, "Acceso denegado", ...)
+    activate msgSistema
+    msgSistema -> sharedForm : cabeceraShow()
+    activate sharedForm
+    deactivate sharedForm
+    msgSistema -> sharedForm : piePaginaShow()
+    activate sharedForm
+    deactivate sharedForm
+    deactivate msgSistema
+    deactivate getReportes
+    deactivate formReportes
+else
+    getReportes -> ctrlReporte : mostrarEntrada('', '', 1, '')
+    activate ctrlReporte
+    
+    ctrlReporte -> modelMov : new Movimiento()
+    activate modelMov
+    
+    ctrlReporte -> modelMov : contarPorTipo('entrada', '', '')
+    activate modelMov
+    modelMov -> dbConn : conectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -> dbConn : desconectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -->> ctrlReporte : totalRegistros
+    deactivate modelMov
+    
+    ctrlReporte -> modelMov : obtenerPorTipoPaginado('entrada', '', '', 1, 10)
+    activate modelMov
+    modelMov -> dbConn : conectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -> dbConn : desconectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -->> ctrlReporte : entradas[]
+    deactivate modelMov
+    
+    deactivate modelMov
+    
+    ctrlReporte -> formReportes : formReporteEntradaShow($entradas, '', '', 1, $totalPaginas, $totalRegistros, '')
+    activate formReportes
+    formReportes -> sharedForm : cabeceraShow()
+    activate sharedForm
+    deactivate sharedForm
+    formReportes -> sharedForm : menuShow()
+    activate sharedForm
+    deactivate sharedForm
+    formReportes -> formReportes : formatearFechaHora($fecha)
+    formReportes -> sharedForm : piePaginaShow()
+    activate sharedForm
+    deactivate sharedForm
+    deactivate formReportes
+    
+    deactivate ctrlReporte
+    deactivate getReportes
+    deactivate formReportes
+end
+
+' ==========================================
+' SECUENCIA 4: BUSCAR EN REPORTE DE ENTRADA
+' ===========================================
+
+== 4. Búsqueda en Reporte de Entrada ==
+
+analista -> formReportes : ingresar texto y click "Buscar" (btnGenerarEntrada)
+activate formReportes
+
+formReportes -> getReportes : POST btnGenerarEntrada (con $buscar)
+activate getReportes
+
+getReportes -> getReportes : validarBoton(btnGenerarEntrada)
+
+alt si validarBoton() = false
+    getReportes -> msgSistema : mensajeSistemaShow(3, "Acceso denegado", ...)
+    activate msgSistema
+    msgSistema -> sharedForm : cabeceraShow()
+    activate sharedForm
+    deactivate sharedForm
+    msgSistema -> sharedForm : piePaginaShow()
+    activate sharedForm
+    deactivate sharedForm
+    deactivate msgSistema
+    deactivate getReportes
+    deactivate formReportes
+else
+    getReportes -> ctrlReporte : mostrarEntrada('', '', 1, $buscar)
+    activate ctrlReporte
+    
+    ctrlReporte -> modelMov : new Movimiento()
+    activate modelMov
+    
+    ctrlReporte -> modelMov : obtenerFiltrados($buscar)
+    activate modelMov
+    modelMov -> dbConn : conectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -> dbConn : desconectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -->> ctrlReporte : todosMovimientos[]
+    deactivate modelMov
+    
+    ctrlReporte -> ctrlReporte : array_filter($todosMovimientos, tipo='entrada')
+    ctrlReporte -> ctrlReporte : array_values($entradas)
+    ctrlReporte -> ctrlReporte : count($entradas)
+    ctrlReporte -> ctrlReporte : ceil($totalRegistros / 10)
+    ctrlReporte -> ctrlReporte : array_slice($entradas, $offset, 10)
+    
+    deactivate modelMov
+    
+    ctrlReporte -> formReportes : formReporteEntradaShow($entradas, '', '', 1, $totalPaginas, $totalRegistros, $buscar)
+    activate formReportes
+    formReportes -> sharedForm : cabeceraShow()
+    activate sharedForm
+    deactivate sharedForm
+    formReportes -> sharedForm : menuShow()
+    activate sharedForm
+    deactivate sharedForm
+    formReportes -> formReportes : formatearFechaHora($fecha)
+    formReportes -> sharedForm : piePaginaShow()
+    activate sharedForm
+    deactivate sharedForm
+    deactivate formReportes
+    
+    deactivate ctrlReporte
+    deactivate getReportes
+    deactivate formReportes
+end
+
+' ==========================================
+' SECUENCIA 5: NAVEGACIÓN DE PÁGINAS (ENTRADA)
+' ===========================================
+
+== 5. Navegación de Páginas - Entrada ==
+
+analista -> formReportes : click en "Anterior" o "Siguiente"
+activate formReportes
+
+formReportes -> getReportes : GET /controllers/getReportes.php?op=entrada&buscar=texto&paginaEntrada=2
+activate getReportes
+
+getReportes -> ctrlReporte : mostrarEntrada('', '', 2, $buscar)
+activate ctrlReporte
+
+ctrlReporte -> modelMov : new Movimiento()
+activate modelMov
+
+alt si $buscar !== ''
+    ctrlReporte -> modelMov : obtenerFiltrados($buscar)
+    activate modelMov
+    modelMov -> dbConn : conectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -> dbConn : desconectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -->> ctrlReporte : todosMovimientos[]
+    deactivate modelMov
+    ctrlReporte -> ctrlReporte : array_filter(), array_slice()
+else
+    ctrlReporte -> modelMov : contarPorTipo('entrada', '', '')
+    activate modelMov
+    modelMov -> dbConn : conectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -> dbConn : desconectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -->> ctrlReporte : totalRegistros
+    deactivate modelMov
+    
+    ctrlReporte -> modelMov : obtenerPorTipoPaginado('entrada', '', '', 2, 10)
+    activate modelMov
+    modelMov -> dbConn : conectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -> dbConn : desconectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -->> ctrlReporte : entradas[]
+    deactivate modelMov
+end
+
+deactivate modelMov
+
+ctrlReporte -> formReportes : formReporteEntradaShow($entradas, '', '', 2, $totalPaginas, $totalRegistros, $buscar)
+activate formReportes
+formReportes -> sharedForm : cabeceraShow()
+activate sharedForm
+deactivate sharedForm
+formReportes -> sharedForm : menuShow()
+activate sharedForm
+deactivate sharedForm
+formReportes -> formReportes : formatearFechaHora($fecha)
+formReportes -> sharedForm : piePaginaShow()
+activate sharedForm
+deactivate sharedForm
+deactivate formReportes
+
+deactivate ctrlReporte
+deactivate getReportes
+deactivate formReportes
+
+' ==========================================
+' SECUENCIA 6: GENERAR REPORTE DE SALIDA
+' ===========================================
+
+== 6. Generar Reporte de Salida ==
+
+analista -> formReportes : click en "Generar Reporte de Salida" (btnIrSalida)
+activate formReportes
+
+formReportes -> getReportes : POST btnIrSalida
+activate getReportes
+
+getReportes -> getReportes : validarBoton(btnIrSalida)
+
+alt si validarBoton() = false
+    getReportes -> msgSistema : mensajeSistemaShow(3, "Acceso denegado", ...)
+    activate msgSistema
+    msgSistema -> sharedForm : cabeceraShow()
+    activate sharedForm
+    deactivate sharedForm
+    msgSistema -> sharedForm : piePaginaShow()
+    activate sharedForm
+    deactivate sharedForm
+    deactivate msgSistema
+    deactivate getReportes
+    deactivate formReportes
+else
+    getReportes -> ctrlReporte : mostrarSalida('', '', 1, '')
+    activate ctrlReporte
+    
+    ctrlReporte -> modelMov : new Movimiento()
+    activate modelMov
+    
+    ctrlReporte -> modelMov : contarPorTipo('salida', '', '')
+    activate modelMov
+    modelMov -> dbConn : conectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -> dbConn : desconectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -->> ctrlReporte : totalRegistros
+    deactivate modelMov
+    
+    ctrlReporte -> modelMov : obtenerPorTipoPaginado('salida', '', '', 1, 10)
+    activate modelMov
+    modelMov -> dbConn : conectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -> dbConn : desconectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -->> ctrlReporte : salidas[]
+    deactivate modelMov
+    
+    deactivate modelMov
+    
+    ctrlReporte -> formReportes : formReporteSalidaShow($salidas, '', '', 1, $totalPaginas, $totalRegistros, '')
+    activate formReportes
+    formReportes -> sharedForm : cabeceraShow()
+    activate sharedForm
+    deactivate sharedForm
+    formReportes -> sharedForm : menuShow()
+    activate sharedForm
+    deactivate sharedForm
+    formReportes -> formReportes : formatearFechaHora($fecha)
+    formReportes -> sharedForm : piePaginaShow()
+    activate sharedForm
+    deactivate sharedForm
+    deactivate formReportes
+    
+    deactivate ctrlReporte
+    deactivate getReportes
+    deactivate formReportes
+end
+
+' ==========================================
+' SECUENCIA 7: BUSCAR EN REPORTE DE SALIDA
+' ===========================================
+
+== 7. Búsqueda en Reporte de Salida ==
+
+analista -> formReportes : ingresar texto y click "Buscar" (btnGenerarSalida)
+activate formReportes
+
+formReportes -> getReportes : POST btnGenerarSalida (con $buscar)
+activate getReportes
+
+getReportes -> getReportes : validarBoton(btnGenerarSalida)
+
+alt si validarBoton() = false
+    getReportes -> msgSistema : mensajeSistemaShow(3, "Acceso denegado", ...)
+    activate msgSistema
+    msgSistema -> sharedForm : cabeceraShow()
+    activate sharedForm
+    deactivate sharedForm
+    msgSistema -> sharedForm : piePaginaShow()
+    activate sharedForm
+    deactivate sharedForm
+    deactivate msgSistema
+    deactivate getReportes
+    deactivate formReportes
+else
+    getReportes -> ctrlReporte : mostrarSalida('', '', 1, $buscar)
+    activate ctrlReporte
+    
+    ctrlReporte -> modelMov : new Movimiento()
+    activate modelMov
+    
+    ctrlReporte -> modelMov : obtenerFiltrados($buscar)
+    activate modelMov
+    modelMov -> dbConn : conectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -> dbConn : desconectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -->> ctrlReporte : todosMovimientos[]
+    deactivate modelMov
+    
+    ctrlReporte -> ctrlReporte : array_filter($todosMovimientos, tipo='salida')
+    ctrlReporte -> ctrlReporte : array_values($salidas)
+    ctrlReporte -> ctrlReporte : count($salidas)
+    ctrlReporte -> ctrlReporte : ceil($totalRegistros / 10)
+    ctrlReporte -> ctrlReporte : array_slice($salidas, $offset, 10)
+    
+    deactivate modelMov
+    
+    ctrlReporte -> formReportes : formReporteSalidaShow($salidas, '', '', 1, $totalPaginas, $totalRegistros, $buscar)
+    activate formReportes
+    formReportes -> sharedForm : cabeceraShow()
+    activate sharedForm
+    deactivate sharedForm
+    formReportes -> sharedForm : menuShow()
+    activate sharedForm
+    deactivate sharedForm
+    formReportes -> formReportes : formatearFechaHora($fecha)
+    formReportes -> sharedForm : piePaginaShow()
+    activate sharedForm
+    deactivate sharedForm
+    deactivate formReportes
+    
+    deactivate ctrlReporte
+    deactivate getReportes
+    deactivate formReportes
+end
+
+' ==========================================
+' SECUENCIA 8: NAVEGACIÓN DE PÁGINAS (SALIDA)
+' ===========================================
+
+== 8. Navegación de Páginas - Salida ==
+
+analista -> formReportes : click en "Anterior" o "Siguiente"
+activate formReportes
+
+formReportes -> getReportes : GET /controllers/getReportes.php?op=salida&buscar=texto&paginaSalida=2
+activate getReportes
+
+getReportes -> ctrlReporte : mostrarSalida('', '', 2, $buscar)
+activate ctrlReporte
+
+ctrlReporte -> modelMov : new Movimiento()
+activate modelMov
+
+alt si $buscar !== ''
+    ctrlReporte -> modelMov : obtenerFiltrados($buscar)
+    activate modelMov
+    modelMov -> dbConn : conectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -> dbConn : desconectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -->> ctrlReporte : todosMovimientos[]
+    deactivate modelMov
+    ctrlReporte -> ctrlReporte : array_filter(), array_slice()
+else
+    ctrlReporte -> modelMov : contarPorTipo('salida', '', '')
+    activate modelMov
+    modelMov -> dbConn : conectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -> dbConn : desconectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -->> ctrlReporte : totalRegistros
+    deactivate modelMov
+    
+    ctrlReporte -> modelMov : obtenerPorTipoPaginado('salida', '', '', 2, 10)
+    activate modelMov
+    modelMov -> dbConn : conectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -> dbConn : desconectar()
+    activate dbConn
+    deactivate dbConn
+    modelMov -->> ctrlReporte : salidas[]
+    deactivate modelMov
+end
+
+deactivate modelMov
+
+ctrlReporte -> formReportes : formReporteSalidaShow($salidas, '', '', 2, $totalPaginas, $totalRegistros, $buscar)
+activate formReportes
+formReportes -> sharedForm : cabeceraShow()
+activate sharedForm
+deactivate sharedForm
+formReportes -> sharedForm : menuShow()
+activate sharedForm
+deactivate sharedForm
+formReportes -> formReportes : formatearFechaHora($fecha)
+formReportes -> sharedForm : piePaginaShow()
+activate sharedForm
+deactivate sharedForm
+deactivate formReportes
+
+deactivate ctrlReporte
+deactivate getReportes
+deactivate formReportes
+
+@enduml
+

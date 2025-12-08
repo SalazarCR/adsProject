@@ -26,9 +26,10 @@ class FormMovimientos extends Formulario {
                 </div>
                 
                 <form method="GET" style="margin-bottom: 15px;">
-                    <input type="text" name="buscar" placeholder="Buscar..." 
-                    value="<?= isset($_GET['buscar']) ? htmlspecialchars($_GET['buscar']) : '' ?>">
-                <button type="submit">Buscar</button>
+                    <input type="hidden" name="op" value="listar">
+                    <input type="text" name="buscar" placeholder="Buscar por producto, lote, motivo o usuario..." 
+                           value="">
+                    <button type="submit">Buscar</button>
                 </form>
 
                 <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse;">

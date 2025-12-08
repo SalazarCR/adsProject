@@ -42,52 +42,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
 // 1. Botón: Ir a Generar Reporte de Entrada
 if (validarBoton('btnIrEntrada')) {
-    $objControl->mostrarEntrada();
+    $objControl->mostrarEntrada('', '', 1, '');
     exit;
 }
 
 // 2. Botón: Ir a Generar Reporte de Salida
 if (validarBoton('btnIrSalida')) {
-    $objControl->mostrarSalida();
+    $objControl->mostrarSalida('', '', 1, '');
     exit;
 }
 
-// 3. Botón: Generar Reporte Entrada (con filtros)
+// 3. Botón: Generar Reporte Entrada (con búsqueda)
 if (validarBoton('btnGenerarEntrada')) {
-    $fechaInicio = $_POST['fechaInicioEntrada'] ?? '';
-    $fechaFin = $_POST['fechaFinEntrada'] ?? '';
-    $pagina = (int)($_POST['paginaEntrada'] ?? 1);
+    $buscar = $_POST['buscar'] ?? $_GET['buscar'] ?? '';
+    $pagina = (int)($_POST['paginaEntrada'] ?? $_GET['paginaEntrada'] ?? 1);
     
-    $objControl->mostrarEntrada($fechaInicio, $fechaFin, $pagina);
+    $objControl->mostrarEntrada('', '', $pagina, $buscar);
     exit;
 }
 
-// 4. Botón: Generar Reporte Salida (con filtros)
+// 4. Botón: Generar Reporte Salida (con búsqueda)
 if (validarBoton('btnGenerarSalida')) {
-    $fechaInicio = $_POST['fechaInicioSalida'] ?? '';
-    $fechaFin = $_POST['fechaFinSalida'] ?? '';
-    $pagina = (int)($_POST['paginaSalida'] ?? 1);
+    $buscar = $_POST['buscar'] ?? $_GET['buscar'] ?? '';
+    $pagina = (int)($_POST['paginaSalida'] ?? $_GET['paginaSalida'] ?? 1);
     
-    $objControl->mostrarSalida($fechaInicio, $fechaFin, $pagina);
+    $objControl->mostrarSalida('', '', $pagina, $buscar);
     exit;
 }
 
-// 5. Navegación de páginas (GET)
-if (isset($_GET['paginaEntrada'])) {
-    $fechaInicio = $_GET['fechaInicioEntrada'] ?? '';
-    $fechaFin = $_GET['fechaFinEntrada'] ?? '';
+// 5. Búsqueda en Reporte de Entrada (GET)
+if (isset($_GET['op']) && $_GET['op'] === 'entrada') {
+    $buscar = $_GET['buscar'] ?? '';
     $pagina = (int)($_GET['paginaEntrada'] ?? 1);
-    
-    $objControl->mostrarEntrada($fechaInicio, $fechaFin, $pagina);
+    $objControl->mostrarEntrada('', '', $pagina, $buscar);
+    exit;
+}
+
+// 6. Búsqueda en Reporte de Salida (GET)
+if (isset($_GET['op']) && $_GET['op'] === 'salida') {
+    $buscar = $_GET['buscar'] ?? '';
+    $pagina = (int)($_GET['paginaSalida'] ?? 1);
+    $objControl->mostrarSalida('', '', $pagina, $buscar);
+    exit;
+}
+
+// 7. Navegación de páginas (GET)
+if (isset($_GET['paginaEntrada'])) {
+    $buscar = $_GET['buscar'] ?? '';
+    $pagina = (int)($_GET['paginaEntrada'] ?? 1);
+    $objControl->mostrarEntrada('', '', $pagina, $buscar);
     exit;
 }
 
 if (isset($_GET['paginaSalida'])) {
-    $fechaInicio = $_GET['fechaInicioSalida'] ?? '';
-    $fechaFin = $_GET['fechaFinSalida'] ?? '';
+    $buscar = $_GET['buscar'] ?? '';
     $pagina = (int)($_GET['paginaSalida'] ?? 1);
-    
-    $objControl->mostrarSalida($fechaInicio, $fechaFin, $pagina);
+    $objControl->mostrarSalida('', '', $pagina, $buscar);
     exit;
 }
 

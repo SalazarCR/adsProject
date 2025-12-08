@@ -7,8 +7,9 @@ class FormReportes extends Formulario {
     // ==========================================
     // 1. VISTA PRINCIPAL - HISTORIAL Y SELECCIÓN DE TIPO DE REPORTE
     // Similar a formListarMovimientosShow - Muestra historial de movimientos
+    // Incluye Kardex con saldo acumulado
     // ==========================================
-    public function formListarReportesShow($movimientos = []) {
+    public function formListarReportesShow($movimientos = [], $kardex = []) {
         $this->cabeceraShow();
         $this->menuShow();
         ?>
@@ -32,10 +33,11 @@ class FormReportes extends Formulario {
                     <a href="../../views/home/dashboard.php" style="margin-left: 15px; text-decoration: underline; color: #333;">Retroceder</a>
                 </div>
 
-                <!-- Búsqueda de movimientos -->
+                <!-- Búsqueda de movimientos - Campo en blanco para buscar -->
                 <form method="GET" action="../../controllers/getReportes.php" style="margin-bottom: 15px;">
-                    <input type="text" name="buscar" placeholder="Buscar por producto, lote, motivo o usuario..." 
-                           value="<?= isset($_GET['buscar']) ? htmlspecialchars($_GET['buscar']) : '' ?>"
+                    <input type="hidden" name="op" value="listar">
+                    <input type="text" name="buscar" placeholder="Buscar por producto, lote, motivo, fecha o usuario..." 
+                           value=""
                            style="padding: 8px; width: 400px; border: 1px solid #ddd; border-radius: 4px;">
                     <button type="submit" class="btn" style="padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
                         Buscar
@@ -47,58 +49,116 @@ class FormReportes extends Formulario {
                     <?php endif; ?>
                 </form>
 
-                <!-- Tabla de Historial de Movimientos -->
-                <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden;">
-                    <h3 style="background-color: #f8f9fa; padding: 15px; margin: 0; border-bottom: 2px solid #dee2e6; color: #495057;">
-                        📋 Historial de Movimientos (Entradas y Salidas)
+                <!-- KARDEX - Tabla con Entradas, Salidas y Saldo Acumulado -->
+                <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+                    <h3 style="background-color: #007bff; color: white; padding: 15px; margin: 0; border-bottom: 2px solid #0056b3;">
+                        📊 Kardex de Inventario
                     </h3>
                     
-                    <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse;">
-                        <tr style="background-color: #e9ecef;">
-                            <th>Fecha y Hora</th>
-                            <th>Tipo</th>
-                            <th>Producto</th>
-                            <th>Lote</th>
-                            <th>Cantidad</th>
-                            <th>Motivo</th>
-                            <th>Usuario</th>
-                        </tr>
-                        <?php if (empty($movimientos)): ?>
-                            <tr>
-                                <td colspan="7" style="text-align: center; padding: 30px; color: #6c757d;">
-                                    No se encontraron movimientos<?= (isset($_GET['buscar']) && $_GET['buscar'] !== '') ? ' que coincidan con la búsqueda' : '' ?>.
-                                </td>
+                    <div style="overflow-x: auto;">
+                        <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse; min-width: 800px;">
+                            <tr style="background-color: #007bff; color: white;">
+                                <th>Fecha y Hora</th>
+                                <th>Tipo</th>
+                                <th>Producto</th>
+                                <th>Lote</th>
+                                <th>Entrada</th>
+                                <th>Salida</th>
+                                <th>Saldo</th>
+                                <th>Motivo</th>
+                                <th>Responsable</th>
                             </tr>
-                        <?php else: ?>
-                            <?php foreach ($movimientos as $m): ?>
-                                <?php 
-                                $color = ($m['tipo'] == 'entrada') ? '#28a745' : '#dc3545';
-                                $simbolo = ($m['tipo'] == 'entrada') ? '+' : '-';
-                                ?>
-                                <tr style="border-bottom: 1px solid #dee2e6;">
-                                    <td><?= $this->formatearFechaHora($m['fecha']) ?></td>
-                                    <td style="color:<?= $color ?>; font-weight:bold;"><?= strtoupper($m['tipo']) ?></td>
-                                    <td><?= htmlspecialchars($m['producto']) ?></td>
-                                    <td><?= htmlspecialchars($m['codigo_lote']) ?></td>
-                                    <td style="text-align: center; color:<?= $color ?>; font-weight:bold;">
-                                        <?= $simbolo ?><?= $m['cantidad'] ?>
+                            <?php if (empty($kardex)): ?>
+                                <tr>
+                                    <td colspan="9" style="text-align: center; padding: 30px; color: #6c757d;">
+                                        No se encontraron movimientos para el Kardex.
                                     </td>
-                                    <td><?= htmlspecialchars($m['motivo']) ?></td>
-                                    <td><?= htmlspecialchars($m['nombre_usuario'] ?? $m['usuario'] ?? 'Sistema') ?></td>
                                 </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </table>
+                            <?php else: ?>
+                                <?php foreach ($kardex as $k): ?>
+                                    <?php 
+                                    $color = ($k['tipo'] == 'entrada') ? '#28a745' : '#dc3545';
+                                    $entrada = ($k['tipo'] == 'entrada') ? $k['cantidad'] : '';
+                                    $salida = ($k['tipo'] == 'salida') ? $k['cantidad'] : '';
+                                    ?>
+                                    <tr style="border-bottom: 1px solid #dee2e6;">
+                                        <td><?= $this->formatearFechaHora($k['fecha']) ?></td>
+                                        <td style="color:<?= $color ?>; font-weight:bold;"><?= strtoupper($k['tipo']) ?></td>
+                                        <td><?= htmlspecialchars($k['producto']) ?></td>
+                                        <td><?= htmlspecialchars($k['codigo_lote']) ?></td>
+                                        <td style="text-align: center; color: #28a745; font-weight:bold;">
+                                            <?= $entrada ? '+' . $entrada : '-' ?>
+                                        </td>
+                                        <td style="text-align: center; color: #dc3545; font-weight:bold;">
+                                            <?= $salida ? '-' . $salida : '-' ?>
+                                        </td>
+                                        <td style="text-align: center; background-color: #e7f3ff; font-weight:bold; color: #007bff;">
+                                            <?= $k['saldo'] ?>
+                                        </td>
+                                        <td><?= htmlspecialchars($k['motivo']) ?></td>
+                                        <td><?= htmlspecialchars($k['nombre_usuario'] ?? $k['usuario'] ?? 'Sistema') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </table>
+                    </div>
+                    
+                    <?php if (!empty($kardex)): ?>
+                        <div style="padding: 15px; background: #f8f9fa; border-top: 2px solid #dee2e6; text-align: center;">
+                            <a href="../../export/export_pdf.php?tipo=todos" target="_blank" 
+                               class="btn" 
+                               style="background-color: #dc3545; text-decoration: none; color: white; padding: 10px 20px; border-radius: 5px; display: inline-block;">
+                                📄 Exportar Kardex Completo PDF
+                            </a>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
-                <!-- Información adicional -->
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; margin-top: 20px;">
-                    <h3 style="color: #495057; margin-top: 0;">ℹ️ Información</h3>
-                    <p style="color: #6c757d; line-height: 1.6; margin: 0;">
-                        <strong>Historial:</strong> Esta tabla muestra todos los movimientos de entrada y salida registrados en el sistema.<br>
-                        <strong>Generar Reportes:</strong> Use los botones superiores para generar reportes específicos con filtros de fechas y exportación a PDF.
-                    </p>
-                </div>
+                <!-- Tabla de Historial de Movimientos (Búsqueda) -->
+                <?php if (isset($_GET['buscar']) && $_GET['buscar'] !== ''): ?>
+                    <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+                        <h3 style="background-color: #f8f9fa; padding: 15px; margin: 0; border-bottom: 2px solid #dee2e6; color: #495057;">
+                            Resultados de Búsqueda
+                        </h3>
+                        
+                        <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+                            <tr style="background-color: #e9ecef;">
+                                <th>Fecha y Hora</th>
+                                <th>Tipo</th>
+                                <th>Producto</th>
+                                <th>Lote</th>
+                                <th>Cantidad</th>
+                                <th>Motivo</th>
+                                <th>Usuario</th>
+                            </tr>
+                            <?php if (empty($movimientos)): ?>
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 30px; color: #6c757d;">
+                                        No se encontraron movimientos.
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($movimientos as $m): ?>
+                                    <?php 
+                                    $color = ($m['tipo'] == 'entrada') ? '#28a745' : '#dc3545';
+                                    $simbolo = ($m['tipo'] == 'entrada') ? '+' : '-';
+                                    ?>
+                                    <tr style="border-bottom: 1px solid #dee2e6;">
+                                        <td><?= $this->formatearFechaHora($m['fecha']) ?></td>
+                                        <td style="color:<?= $color ?>; font-weight:bold;"><?= strtoupper($m['tipo']) ?></td>
+                                        <td><?= htmlspecialchars($m['producto']) ?></td>
+                                        <td><?= htmlspecialchars($m['codigo_lote']) ?></td>
+                                        <td style="text-align: center; color:<?= $color ?>; font-weight:bold;">
+                                            <?= $simbolo ?><?= $m['cantidad'] ?>
+                                        </td>
+                                        <td><?= htmlspecialchars($m['motivo']) ?></td>
+                                        <td><?= htmlspecialchars($m['nombre_usuario'] ?? $m['usuario'] ?? 'Sistema') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </table>
+                    </div>
+                <?php endif; ?>
             </div>
         </main>
         <?php
@@ -106,8 +166,9 @@ class FormReportes extends Formulario {
     }
 
     // ==========================================
-    // 2. VISTA DE REPORTE DE ENTRADA
-    // RF35-RF39: Reportes de Entrada
+    // 2. VISTA DE REPORTE DE ENTRADA DE INVENTARIO
+    // Caso de Uso: Generar Reporte de Entrada de Productos
+    // Permite filtrar por fechas, ver registros paginados y exportar a PDF
     // ==========================================
     public function formReporteEntradaShow(
         $entradas,
@@ -115,7 +176,8 @@ class FormReportes extends Formulario {
         $fechaFin = '',
         $pagina = 1,
         $totalPaginas = 1,
-        $totalRegistros = 0
+        $totalRegistros = 0,
+        $buscar = ''
     ) {
         $this->cabeceraShow();
         $this->menuShow();
@@ -128,49 +190,46 @@ class FormReportes extends Formulario {
                     <a href="../../controllers/getReportes.php?op=listar" style="text-decoration: underline; color: #333;">← Retroceder</a>
                 </div>
 
-                <!-- Filtros de Fecha (RF37) -->
+                <!-- Filtro de Búsqueda General -->
                 <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 20px;">
-                    <h3 style="margin-top: 0; color: #495057;">Filtrar por Rango de Fechas</h3>
-                    <form action="../../controllers/getReportes.php" method="POST" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: end;">
-                        <div>
-                            <label><b>Fecha Inicio:</b></label>
-                            <input type="date" name="fechaInicioEntrada" value="<?= htmlspecialchars($fechaInicio) ?>" class="input-text" style="width: 100%;">
-                        </div>
-                        <div>
-                            <label><b>Fecha Fin:</b></label>
-                            <input type="date" name="fechaFinEntrada" value="<?= htmlspecialchars($fechaFin) ?>" class="input-text" style="width: 100%;">
+                    <form method="POST" action="../../controllers/getReportes.php" style="display: flex; gap: 10px; align-items: end;">
+                        <div style="flex: 1;">
+                            <label><b>Buscar:</b></label>
+                            <input type="text" name="buscar" placeholder="Buscar por producto, lote, fecha, motivo, usuario..." 
+                                   value="<?= htmlspecialchars($buscar) ?>"
+                                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                         </div>
                         <div>
                             <input type="hidden" name="paginaEntrada" value="1">
-                            <button type="submit" name="btnGenerarEntrada" class="btn" style="background-color: #28a745; color: white; padding: 10px 20px; width: 100%;">
-                                Filtrar
+                            <button type="submit" name="btnGenerarEntrada" class="btn" style="background-color: #28a745; color: white; padding: 10px 20px; border-radius: 4px; border: none; cursor: pointer;">
+                                Buscar
                             </button>
                         </div>
+                        <?php if ($buscar !== ''): ?>
+                            <a href="../../controllers/getReportes.php?op=entrada" style="padding: 10px 15px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;">
+                                Limpiar
+                            </a>
+                        <?php endif; ?>
                     </form>
                 </div>
 
-                <!-- Información y Exportación (RF35, RF36) -->
+                <!-- Información del Reporte y Opción de Exportación a PDF -->
                 <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background: white; border-radius: 5px; border: 1px solid #dee2e6;">
                     <div style="color: #495057; font-size: 14px;">
-                        <strong>Total de registros:</strong> <?= $totalRegistros ?> | 
+                        <strong>Total:</strong> <?= $totalRegistros ?> | 
                         <strong>Página:</strong> <?= $pagina ?> de <?= $totalPaginas ?>
-                        <?php if ($fechaInicio || $fechaFin): ?>
-                            | <strong>Período:</strong> 
-                            <?= $fechaInicio ? $this->formatearFecha($fechaInicio) : 'Inicio' ?> - 
-                            <?= $fechaFin ? $this->formatearFecha($fechaFin) : 'Fin' ?>
-                        <?php endif; ?>
                     </div>
                     <?php if (!empty($entradas)): ?>
                         <a href="../../export/export_pdf.php?tipo=entrada&inicio=<?= urlencode($fechaInicio) ?>&fin=<?= urlencode($fechaFin) ?>" 
                            target="_blank" 
                            class="btn" 
                            style="background-color: #dc3545; text-decoration: none; color: white; padding: 10px 20px; border-radius: 5px;">
-                            📄 Exportar PDF (RF35)
+                            📄 Exportar PDF
                         </a>
                     <?php endif; ?>
                 </div>
 
-                <!-- Tabla de Entradas (RF38, RF39) -->
+                <!-- Tabla de Registros de Entrada: Muestra movimientos de entrada con paginación -->
                 <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse; background: white;">
                     <tr style="background-color: #28a745; color: white;">
                         <th>Fecha y Hora</th>
@@ -178,12 +237,12 @@ class FormReportes extends Formulario {
                         <th>Lote</th>
                         <th>Cantidad</th>
                         <th>Motivo</th>
-                        <th>Responsable (RF39)</th>
+                        <th>Responsable</th>
                     </tr>
                     <?php if (empty($entradas)): ?>
                         <tr>
                             <td colspan="6" style="text-align: center; padding: 30px; color: #6c757d;">
-                                No se encontraron registros de entradas<?= ($fechaInicio || $fechaFin) ? ' en el rango de fechas seleccionado' : '' ?>.
+                                No se encontraron registros.
                             </td>
                         </tr>
                     <?php else: ?>
@@ -200,13 +259,13 @@ class FormReportes extends Formulario {
                     <?php endif; ?>
                 </table>
 
-                <!-- Paginación (RF38) -->
+                <!-- Navegación de Páginas: Permite navegar entre páginas de resultados -->
                 <?php if ($totalPaginas > 1): ?>
                     <div style="margin-top: 20px; text-align: center;">
                         <?php
                         $params = http_build_query([
-                            'fechaInicioEntrada' => $fechaInicio,
-                            'fechaFinEntrada' => $fechaFin
+                            'op' => 'entrada',
+                            'buscar' => $buscar
                         ]);
                         ?>
                         <?php if ($pagina > 1): ?>
@@ -235,8 +294,9 @@ class FormReportes extends Formulario {
     }
 
     // ==========================================
-    // 3. VISTA DE REPORTE DE SALIDA
-    // RF40-RF44: Reportes de Salida
+    // 3. VISTA DE REPORTE DE SALIDA DE INVENTARIO
+    // Caso de Uso: Generar Reporte de Salida de Productos
+    // Permite filtrar por fechas, ver registros paginados y exportar a PDF
     // ==========================================
     public function formReporteSalidaShow(
         $salidas,
@@ -244,7 +304,8 @@ class FormReportes extends Formulario {
         $fechaFin = '',
         $pagina = 1,
         $totalPaginas = 1,
-        $totalRegistros = 0
+        $totalRegistros = 0,
+        $buscar = ''
     ) {
         $this->cabeceraShow();
         $this->menuShow();
@@ -257,49 +318,46 @@ class FormReportes extends Formulario {
                     <a href="../../controllers/getReportes.php?op=listar" style="text-decoration: underline; color: #333;">← Retroceder</a>
                 </div>
 
-                <!-- Filtros de Fecha (RF43) -->
+                <!-- Filtro de Búsqueda General -->
                 <div style="background: #fff3cd; padding: 20px; border-radius: 8px; border: 1px solid #ffc107; margin-bottom: 20px;">
-                    <h3 style="margin-top: 0; color: #856404;">Filtrar por Rango de Fechas</h3>
-                    <form action="../../controllers/getReportes.php" method="POST" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: end;">
-                        <div>
-                            <label><b>Fecha Inicio:</b></label>
-                            <input type="date" name="fechaInicioSalida" value="<?= htmlspecialchars($fechaInicio) ?>" class="input-text" style="width: 100%;">
-                        </div>
-                        <div>
-                            <label><b>Fecha Fin:</b></label>
-                            <input type="date" name="fechaFinSalida" value="<?= htmlspecialchars($fechaFin) ?>" class="input-text" style="width: 100%;">
+                    <form method="POST" action="../../controllers/getReportes.php" style="display: flex; gap: 10px; align-items: end;">
+                        <div style="flex: 1;">
+                            <label><b>Buscar:</b></label>
+                            <input type="text" name="buscar" placeholder="Buscar por producto, lote, fecha, motivo, usuario..." 
+                                   value="<?= htmlspecialchars($buscar) ?>"
+                                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                         </div>
                         <div>
                             <input type="hidden" name="paginaSalida" value="1">
-                            <button type="submit" name="btnGenerarSalida" class="btn" style="background-color: #ffc107; color: black; padding: 10px 20px; width: 100%;">
-                                Filtrar
+                            <button type="submit" name="btnGenerarSalida" class="btn" style="background-color: #ffc107; color: black; padding: 10px 20px; border-radius: 4px; border: none; cursor: pointer;">
+                                Buscar
                             </button>
                         </div>
+                        <?php if ($buscar !== ''): ?>
+                            <a href="../../controllers/getReportes.php?op=salida" style="padding: 10px 15px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;">
+                                Limpiar
+                            </a>
+                        <?php endif; ?>
                     </form>
                 </div>
 
-                <!-- Información y Exportación (RF40, RF41) -->
+                <!-- Información del Reporte y Opción de Exportación a PDF -->
                 <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 15px; background: white; border-radius: 5px; border: 1px solid #dee2e6;">
                     <div style="color: #495057; font-size: 14px;">
-                        <strong>Total de registros:</strong> <?= $totalRegistros ?> | 
+                        <strong>Total:</strong> <?= $totalRegistros ?> | 
                         <strong>Página:</strong> <?= $pagina ?> de <?= $totalPaginas ?>
-                        <?php if ($fechaInicio || $fechaFin): ?>
-                            | <strong>Período:</strong> 
-                            <?= $fechaInicio ? $this->formatearFecha($fechaInicio) : 'Inicio' ?> - 
-                            <?= $fechaFin ? $this->formatearFecha($fechaFin) : 'Fin' ?>
-                        <?php endif; ?>
                     </div>
                     <?php if (!empty($salidas)): ?>
                         <a href="../../export/export_pdf.php?tipo=salida&inicio=<?= urlencode($fechaInicio) ?>&fin=<?= urlencode($fechaFin) ?>" 
                            target="_blank" 
                            class="btn" 
                            style="background-color: #dc3545; text-decoration: none; color: white; padding: 10px 20px; border-radius: 5px;">
-                            📄 Exportar PDF (RF40)
+                            📄 Exportar PDF
                         </a>
                     <?php endif; ?>
                 </div>
 
-                <!-- Tabla de Salidas (RF42, RF44) -->
+                <!-- Tabla de Registros de Salida: Muestra movimientos de salida con paginación -->
                 <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse; background: white;">
                     <tr style="background-color: #ffc107; color: black;">
                         <th>Fecha y Hora</th>
@@ -307,12 +365,12 @@ class FormReportes extends Formulario {
                         <th>Lote</th>
                         <th>Cantidad</th>
                         <th>Motivo</th>
-                        <th>Responsable (RF44)</th>
+                        <th>Responsable</th>
                     </tr>
                     <?php if (empty($salidas)): ?>
                         <tr>
                             <td colspan="6" style="text-align: center; padding: 30px; color: #6c757d;">
-                                No se encontraron registros de salidas<?= ($fechaInicio || $fechaFin) ? ' en el rango de fechas seleccionado' : '' ?>.
+                                No se encontraron registros.
                             </td>
                         </tr>
                     <?php else: ?>
@@ -329,13 +387,13 @@ class FormReportes extends Formulario {
                     <?php endif; ?>
                 </table>
 
-                <!-- Paginación (RF42) -->
+                <!-- Navegación de Páginas: Permite navegar entre páginas de resultados -->
                 <?php if ($totalPaginas > 1): ?>
                     <div style="margin-top: 20px; text-align: center;">
                         <?php
                         $params = http_build_query([
-                            'fechaInicioSalida' => $fechaInicio,
-                            'fechaFinSalida' => $fechaFin
+                            'op' => 'salida',
+                            'buscar' => $buscar
                         ]);
                         ?>
                         <?php if ($pagina > 1): ?>
