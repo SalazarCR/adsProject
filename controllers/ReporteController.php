@@ -22,10 +22,20 @@ class ReporteController {
     // ==========================================
     // 1. GESTIONAR - VISTA PRINCIPAL (LISTAR)
     // Similar a MovimientoController::gestionar()
+    // Muestra historial de movimientos + botones para generar reportes
     // ==========================================
-    public function gestionar() {
+    public function gestionar($buscar = '') {
+        $objMov = new Movimiento();
+        
+        // Obtener movimientos (con búsqueda opcional)
+        if ($buscar !== '') {
+            $movimientos = $objMov->obtenerFiltrados($buscar);
+        } else {
+            $movimientos = $objMov->obtenerTodos();
+        }
+        
         $objForm = new FormReportes();
-        $objForm->formListarReportesShow();
+        $objForm->formListarReportesShow($movimientos);
     }
 
     // ==========================================

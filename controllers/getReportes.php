@@ -22,8 +22,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     switch ($op) {
 
         case 'listar':
-            // Vista principal de selección
-            $objControl->gestionar();
+        case 'panel':
+            // Vista principal de selección con historial
+            // 'panel' es usado por el menú del analista, 'listar' es el valor por defecto
+            $buscar = $_GET['buscar'] ?? '';
+            $objControl->gestionar($buscar);
             exit;
 
         default:

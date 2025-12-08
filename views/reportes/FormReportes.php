@@ -5,10 +5,10 @@ require_once __DIR__ . '/../shared/Formulario.php';
 class FormReportes extends Formulario {
 
     // ==========================================
-    // 1. VISTA PRINCIPAL - SELECCIÓN DE TIPO DE REPORTE
-    // Similar a formListarMovimientosShow
+    // 1. VISTA PRINCIPAL - HISTORIAL Y SELECCIÓN DE TIPO DE REPORTE
+    // Similar a formListarMovimientosShow - Muestra historial de movimientos
     // ==========================================
-    public function formListarReportesShow() {
+    public function formListarReportesShow($movimientos = []) {
         $this->cabeceraShow();
         $this->menuShow();
         ?>
@@ -32,10 +32,71 @@ class FormReportes extends Formulario {
                     <a href="../../views/home/dashboard.php" style="margin-left: 15px; text-decoration: underline; color: #333;">Retroceder</a>
                 </div>
 
+                <!-- Búsqueda de movimientos -->
+                <form method="GET" action="../../controllers/getReportes.php" style="margin-bottom: 15px;">
+                    <input type="text" name="buscar" placeholder="Buscar por producto, lote, motivo o usuario..." 
+                           value="<?= isset($_GET['buscar']) ? htmlspecialchars($_GET['buscar']) : '' ?>"
+                           style="padding: 8px; width: 400px; border: 1px solid #ddd; border-radius: 4px;">
+                    <button type="submit" class="btn" style="padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Buscar
+                    </button>
+                    <?php if (isset($_GET['buscar']) && $_GET['buscar'] !== ''): ?>
+                        <a href="../../controllers/getReportes.php?op=listar" style="margin-left: 10px; color: #6c757d; text-decoration: underline;">
+                            Limpiar búsqueda
+                        </a>
+                    <?php endif; ?>
+                </form>
+
+                <!-- Tabla de Historial de Movimientos -->
+                <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden;">
+                    <h3 style="background-color: #f8f9fa; padding: 15px; margin: 0; border-bottom: 2px solid #dee2e6; color: #495057;">
+                        📋 Historial de Movimientos (Entradas y Salidas)
+                    </h3>
+                    
+                    <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+                        <tr style="background-color: #e9ecef;">
+                            <th>Fecha y Hora</th>
+                            <th>Tipo</th>
+                            <th>Producto</th>
+                            <th>Lote</th>
+                            <th>Cantidad</th>
+                            <th>Motivo</th>
+                            <th>Usuario</th>
+                        </tr>
+                        <?php if (empty($movimientos)): ?>
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 30px; color: #6c757d;">
+                                    No se encontraron movimientos<?= (isset($_GET['buscar']) && $_GET['buscar'] !== '') ? ' que coincidan con la búsqueda' : '' ?>.
+                                </td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($movimientos as $m): ?>
+                                <?php 
+                                $color = ($m['tipo'] == 'entrada') ? '#28a745' : '#dc3545';
+                                $simbolo = ($m['tipo'] == 'entrada') ? '+' : '-';
+                                ?>
+                                <tr style="border-bottom: 1px solid #dee2e6;">
+                                    <td><?= $this->formatearFechaHora($m['fecha']) ?></td>
+                                    <td style="color:<?= $color ?>; font-weight:bold;"><?= strtoupper($m['tipo']) ?></td>
+                                    <td><?= htmlspecialchars($m['producto']) ?></td>
+                                    <td><?= htmlspecialchars($m['codigo_lote']) ?></td>
+                                    <td style="text-align: center; color:<?= $color ?>; font-weight:bold;">
+                                        <?= $simbolo ?><?= $m['cantidad'] ?>
+                                    </td>
+                                    <td><?= htmlspecialchars($m['motivo']) ?></td>
+                                    <td><?= htmlspecialchars($m['nombre_usuario'] ?? $m['usuario'] ?? 'Sistema') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </table>
+                </div>
+
+                <!-- Información adicional -->
                 <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; margin-top: 20px;">
-                    <h3 style="color: #495057; margin-top: 0;">Información</h3>
-                    <p style="color: #6c757d; line-height: 1.6;">
-                        Seleccione el tipo de reporte que desea generar. Puede filtrar por rango de fechas y exportar los resultados en formato PDF.
+                    <h3 style="color: #495057; margin-top: 0;">ℹ️ Información</h3>
+                    <p style="color: #6c757d; line-height: 1.6; margin: 0;">
+                        <strong>Historial:</strong> Esta tabla muestra todos los movimientos de entrada y salida registrados en el sistema.<br>
+                        <strong>Generar Reportes:</strong> Use los botones superiores para generar reportes específicos con filtros de fechas y exportación a PDF.
                     </p>
                 </div>
             </div>
