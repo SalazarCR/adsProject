@@ -1,10 +1,18 @@
 @startuml DesignModel_Reportes_DiagramaObjetos
 ' Diagrama de Objetos de Diseño - Módulo Gestión de Reportes
 ' Análisis riguroso del código - Patrón MVC
-' Arquitectura de 3 capas: Boundary → Controller → Entity
+' Arquitectura de 3 capas: Boundary → Controller → Model
+' Estilo curvilíneo con etiquetas descriptivas
+' Orden estricto: Boundary → Controller → Model
 
-skinparam linetype ortho
+skinparam linetype polyline
+skinparam class {
+    BackgroundColor White
+    ArrowColor Black
+    BorderColor Black
+}
 skinparam classAttributeIconSize 0
+skinparam roundcorner 20
 
 ' ==========================================
 ' ACTOR
@@ -13,7 +21,12 @@ class "analista\n(from Actors)" as actorAnalista <<actor>>
 
 ' ==========================================
 ' CAPA DE PRESENTACIÓN (BOUNDARY)
+' Orden: Boundary primero
 ' ==========================================
+class "menu\n(from shared)" as menu <<boundary>> {
+    ' Muestra enlace "Gestión de Reportes" para admin y analista
+}
+
 class "formulario\n(from shared)" as formulario <<boundary>> {
     {protected} cabeceraShow() : void
     {protected} menuShow() : void
@@ -34,9 +47,12 @@ class "pantallaMensajeSistema\n(from shared)" as msgSistema <<boundary>> {
 
 ' ==========================================
 ' CAPA DE CONTROL (CONTROLLER)
+' Orden: Controller segundo
 ' ==========================================
-class "getReportes" as getReportes <<controller>> {
-    {function} validarBoton($nombreBoton : string) : bool
+class "getReportes\n(script dispatcher)" as getReportes <<controller>> {
+    ' Script que recibe URLs (GET/POST)
+    ' Maneja parámetros: op, buscar, paginaEntrada, paginaSalida
+    ' Valida botones POST: btnIrEntrada, btnIrSalida, btnGenerarEntrada, btnGenerarSalida
 }
 
 class "reporteController" as ctrlReporte <<controller>> {
@@ -48,7 +64,22 @@ class "reporteController" as ctrlReporte <<controller>> {
 
 ' ==========================================
 ' CAPA DE ACCESO A DATOS (ENTITY)
+' Orden: Model tercero
 ' ==========================================
+class "session\n(from core)" as session <<entity>> {
+    {static} start() : void
+    {static} set($key : string, $value : mixed) : void
+    {static} get($key : string) : mixed
+    {static} exists($key : string) : bool
+    {static} remove($key : string) : void
+    {static} destroy() : void
+    {static} verificarSesion() : void
+    {static} rol() : string
+    {static} esAdmin() : bool
+    {static} esAuxiliar() : bool
+    {static} esAnalista() : bool
+}
+
 class "conexion\n(from config)" as conexion <<entity>> {
     {protected} $db : PDO
     +conectar() : void
@@ -67,47 +98,87 @@ class "movimiento\n(from core)" as movimiento <<entity>> {
     +registrar($lote_id : int, $tipo : string, $cantidad : int, $motivo : string, $usuario_id : int) : bool
 }
 
-class "session\n(from core)" as session <<entity>> {
-    {static} start() : void
-    {static} set($key : string, $value : mixed) : void
-    {static} get($key : string) : mixed
-    {static} exists($key : string) : bool
-    {static} remove($key : string) : void
-    {static} destroy() : void
-    {static} verificarSesion() : void
-    {static} rol() : string
-    {static} esAdmin() : bool
-    {static} esAuxiliar() : bool
-    {static} esAnalista() : bool
+' ==========================================
+' EXTERNAL (Base de Datos)
+' ==========================================
+class "MySQL\n(database)" as mysql <<external>> {
+    + query() : ResultSet
+    + execute() : bool
+    + connect() : void
+    + disconnect() : void
 }
 
 ' ==========================================
 ' RELACIONES - ORDEN: BOUNDARY → CONTROLLER → MODEL
+' Estilo curvilíneo con etiquetas descriptivas
 ' ==========================================
 
 ' Actor accede al sistema
-actorAnalista -> getReportes
+actorAnalista --> menu : "accede"
 
-' Herencia de formulario
-formulario <|-- formReportes
-formulario <|-- msgSistema
+' BOUNDARY → BOUNDARY (herencia)
+formulario <|-- formReportes : "hereda"
+formulario <|-- msgSistema : "hereda"
 
-' Flujo de datos: Boundary → Controller
-formReportes --> getReportes : POST/GET
-getReportes --> formReportes
+' BOUNDARY → CONTROLLER
+menu --> getReportes : "navega a\n(GET ?op=listar)"
+formReportes --> getReportes : "envía petición\n(POST/GET)"
 
-' Controller orquesta el flujo
-getReportes --> ctrlReporte
-ctrlReporte --> msgSistema
-ctrlReporte --> formReportes
+' CONTROLLER → CONTROLLER
+getReportes --> ctrlReporte : "instancia"
 
-' Controller utiliza Entity
-ctrlReporte --> movimiento
+' CONTROLLER → BOUNDARY
+getReportes --> formReportes : "redirige a"
+ctrlReporte --> formReportes : "renderiza"
+ctrlReporte --> msgSistema : "muestra error"
 
-' Entity hereda de Conexion
-conexion <|-- movimiento
+' CONTROLLER → MODEL
+ctrlReporte --> session : "valida sesión"
+ctrlReporte --> movimiento : "consulta datos"
 
-' Controller verifica sesión
-ctrlReporte --> session
+' MODEL → MODEL (herencia)
+conexion <|-- movimiento : "hereda"
+
+' MODEL → MODEL (uso)
+movimiento --> conexion : "usa"
+
+' MODEL → EXTERNAL
+conexion --> mysql : "conecta a"
+
+' ==========================================
+' NOTAS EXPLICATIVAS
+' ==========================================
+note right of formReportes
+    **Capa de Presentación (Boundary)**
+    - Muestra y captura información
+    - Hereda de formulario para estructura común
+    - No accede directamente a base de datos
+    - Renderiza vistas HTML
+end note
+
+note right of ctrlReporte
+    **Capa de Control (Controller)**
+    - Coordina el flujo del proceso
+    - Valida datos y sesiones
+    - Decide qué vista mostrar
+    - Orquesta interacciones con Entity
+    - No accede directamente a base de datos
+end note
+
+note right of movimiento
+    **Capa de Acceso a Datos (Entity)**
+    - Interactúa con base de datos
+    - Hereda de Conexion
+    - Ejecuta consultas SQL
+    - No muestra información al usuario
+    - Retorna datos al Controller
+end note
+
+note right of mysql
+    **Base de Datos Externa**
+    - Almacena información persistente
+    - Ejecuta consultas SQL
+    - Retorna resultados de consultas
+end note
 
 @enduml

@@ -29,6 +29,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $objControl->gestionar($buscar);
             exit;
 
+        case 'entrada':
+            // Búsqueda en Reporte de Entrada (GET)
+            $buscar = $_GET['buscar'] ?? '';
+            $pagina = (int)($_GET['paginaEntrada'] ?? 1);
+            $objControl->mostrarEntrada('', '', $pagina, $buscar);
+            exit;
+
+        case 'salida':
+            // Búsqueda en Reporte de Salida (GET)
+            $buscar = $_GET['buscar'] ?? '';
+            $pagina = (int)($_GET['paginaSalida'] ?? 1);
+            $objControl->mostrarSalida('', '', $pagina, $buscar);
+            exit;
+
         default:
             $objMsg->mensajeSistemaShow(3, "Operación no permitida", "../views/home/dashboard.php");
             exit;
@@ -66,22 +80,6 @@ if (validarBoton('btnGenerarSalida')) {
     $buscar = $_POST['buscar'] ?? $_GET['buscar'] ?? '';
     $pagina = (int)($_POST['paginaSalida'] ?? $_GET['paginaSalida'] ?? 1);
     
-    $objControl->mostrarSalida('', '', $pagina, $buscar);
-    exit;
-}
-
-// 5. Búsqueda en Reporte de Entrada (GET)
-if (isset($_GET['op']) && $_GET['op'] === 'entrada') {
-    $buscar = $_GET['buscar'] ?? '';
-    $pagina = (int)($_GET['paginaEntrada'] ?? 1);
-    $objControl->mostrarEntrada('', '', $pagina, $buscar);
-    exit;
-}
-
-// 6. Búsqueda en Reporte de Salida (GET)
-if (isset($_GET['op']) && $_GET['op'] === 'salida') {
-    $buscar = $_GET['buscar'] ?? '';
-    $pagina = (int)($_GET['paginaSalida'] ?? 1);
     $objControl->mostrarSalida('', '', $pagina, $buscar);
     exit;
 }

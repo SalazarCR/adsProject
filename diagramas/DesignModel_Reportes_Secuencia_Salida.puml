@@ -1,0 +1,194 @@
+@startuml DesignModel_Reportes_DiagramaSecuencia_Salida
+' Diagrama de Secuencia - Generar Reporte de Salida
+' Análisis riguroso del código - Patrón MVC
+' Orden estricto: Boundary → Controller → Model
+' Flujo completo con ida y retorno ordenado
+
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam roundcorner 10
+
+' ==========================================
+' PARTICIPANTES EN ORDEN: BOUNDARY → CONTROLLER → MODEL
+' ==========================================
+actor ":analista" as analista
+
+' BOUNDARY (Capa de Presentación)
+participant ": menu\n(shared)" as menu <<boundary>>
+participant ": formulario\n(shared)" as sharedForm <<boundary>>
+participant ": formReportes" as formReportes <<boundary>>
+participant ": pantallaMensajeSistema" as msgSistema <<boundary>>
+
+' CONTROLLER (Capa de Control)
+participant ": getReportes\n(script dispatcher)" as getReportes <<controller>>
+participant ": reporteController" as ctrlReporte <<controller>>
+
+' MODEL (Capa de Acceso a Datos)
+participant ": session" as session <<entity>>
+participant ": movimiento" as modelMov <<entity>>
+participant ": conexion" as dbConn <<entity>>
+participant ": MySQL\n(database)" as mysql <<external>>
+
+' ==========================================
+' SECUENCIA: CLICK EN BOTÓN "GENERAR REPORTE DE SALIDA"
+' ===========================================
+
+== Click en botón "Generar Reporte de Salida" ==
+
+analista -> formReportes : 1. Click en botón "Generar Reporte de Salida" (btnIrSalida)
+activate formReportes
+
+formReportes -> getReportes : 2. POST btnIrSalida
+activate getReportes
+
+getReportes -> getReportes : 3. validarBoton('btnIrSalida')
+note right of getReportes
+    Función global: isset($_POST['btnIrSalida'])
+end note
+
+alt si validarBoton() = false
+    getReportes -> msgSistema : 4. mensajeSistemaShow(3, "Acceso denegado", "../views/home/dashboard.php")
+    activate msgSistema
+    
+    msgSistema -> sharedForm : 4.1. cabeceraShow()
+    activate sharedForm
+    sharedForm --> msgSistema : 4.1.1. cabecera renderizada
+    deactivate sharedForm
+    
+    msgSistema -> sharedForm : 4.2. piePaginaShow()
+    activate sharedForm
+    sharedForm --> msgSistema : 4.2.1. pie renderizado
+    deactivate sharedForm
+    
+    msgSistema --> getReportes : 4.3. mensaje mostrado
+    deactivate msgSistema
+    
+    getReportes --> formReportes : 5. acceso denegado
+    deactivate getReportes
+    deactivate formReportes
+    
+else
+    ' BOUNDARY → CONTROLLER
+    getReportes -> ctrlReporte : 6. mostrarSalida('', '', 1, '')
+    activate ctrlReporte
+    
+    ' CONTROLLER → MODEL
+    ctrlReporte -> modelMov : 7. new Movimiento()
+    activate modelMov
+    
+    ctrlReporte -> modelMov : 8. contarPorTipo('salida', '', '')
+    activate modelMov
+    
+    ' MODEL → DATABASE
+    modelMov -> dbConn : 8.1. conectar()
+    activate dbConn
+    dbConn -> mysql : 8.1.1. connect()
+    activate mysql
+    mysql --> dbConn : 8.1.2. conexión establecida
+    deactivate mysql
+    dbConn --> modelMov : 8.1.3. conexión lista
+    deactivate dbConn
+    
+    modelMov -> dbConn : 8.2. query(SQL COUNT)
+    activate dbConn
+    dbConn -> mysql : 8.2.1. execute(SQL)
+    activate mysql
+    mysql --> dbConn : 8.2.2. totalRegistros
+    deactivate mysql
+    dbConn --> modelMov : 8.2.3. total obtenido
+    deactivate dbConn
+    
+    modelMov -> dbConn : 8.3. desconectar()
+    activate dbConn
+    dbConn -> mysql : 8.3.1. disconnect()
+    activate mysql
+    mysql --> dbConn : 8.3.2. desconectado
+    deactivate mysql
+    dbConn --> modelMov : 8.3.3. desconectado
+    deactivate dbConn
+    
+    modelMov --> ctrlReporte : 8.4. totalRegistros
+    deactivate modelMov
+    
+    ctrlReporte -> modelMov : 9. obtenerPorTipoPaginado('salida', '', '', 1, 10)
+    activate modelMov
+    
+    ' MODEL → DATABASE
+    modelMov -> dbConn : 9.1. conectar()
+    activate dbConn
+    dbConn -> mysql : 9.1.1. connect()
+    activate mysql
+    mysql --> dbConn : 9.1.2. conexión establecida
+    deactivate mysql
+    dbConn --> modelMov : 9.1.3. conexión lista
+    deactivate dbConn
+    
+    modelMov -> dbConn : 9.2. query(SQL LIMIT)
+    activate dbConn
+    dbConn -> mysql : 9.2.1. execute(SQL)
+    activate mysql
+    mysql --> dbConn : 9.2.2. salidas[]
+    deactivate mysql
+    dbConn --> modelMov : 9.2.3. datos obtenidos
+    deactivate dbConn
+    
+    modelMov -> dbConn : 9.3. desconectar()
+    activate dbConn
+    dbConn -> mysql : 9.3.1. disconnect()
+    activate mysql
+    mysql --> dbConn : 9.3.2. desconectado
+    deactivate mysql
+    dbConn --> modelMov : 9.3.3. desconectado
+    deactivate dbConn
+    
+    modelMov --> ctrlReporte : 9.4. salidas[]
+    deactivate modelMov
+    
+    deactivate modelMov
+    
+    ' CONTROLLER → BOUNDARY
+    ctrlReporte -> formReportes : 10. formReporteSalidaShow($salidas, '', '', 1, $totalPaginas, $totalRegistros, '')
+    activate formReportes
+    
+    formReportes -> sharedForm : 10.1. cabeceraShow()
+    activate sharedForm
+    sharedForm --> formReportes : 10.1.1. cabecera renderizada
+    deactivate sharedForm
+    
+    formReportes -> sharedForm : 10.2. menuShow()
+    activate sharedForm
+    sharedForm --> formReportes : 10.2.1. menú renderizado
+    deactivate sharedForm
+    
+    formReportes -> formReportes : 10.3. formatearFechaHora($fecha)
+    formReportes --> formReportes : 10.3.1. fecha formateada
+    
+    note right of formReportes
+        Vista muestra:
+        - Tabla de salidas paginada
+        - Campo de búsqueda
+        - Botón "Buscar" (btnGenerarSalida)
+        - Enlaces de paginación
+        - Enlace "Exportar PDF"
+    end note
+    
+    formReportes -> sharedForm : 10.4. piePaginaShow()
+    activate sharedForm
+    sharedForm --> formReportes : 10.4.1. pie renderizado
+    deactivate sharedForm
+    
+    formReportes --> ctrlReporte : 10.5. vista renderizada
+    deactivate formReportes
+    
+    ctrlReporte --> getReportes : 11. vista mostrada
+    deactivate ctrlReporte
+    
+    getReportes --> formReportes : 12. respuesta enviada
+    deactivate getReportes
+    
+    formReportes --> analista : 13. reporte de salida mostrado
+    deactivate formReportes
+end
+
+@enduml
+

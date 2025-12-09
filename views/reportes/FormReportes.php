@@ -50,6 +50,7 @@ class FormReportes extends Formulario {
                 </form>
 
                 <!-- KARDEX - Tabla con Entradas, Salidas y Saldo Acumulado -->
+                <?php if (!isset($_GET['buscar']) || $_GET['buscar'] === ''): ?>
                 <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
                     <h3 style="background-color: #007bff; color: white; padding: 15px; margin: 0; border-bottom: 2px solid #0056b3;">
                         📊 Kardex de Inventario
@@ -113,6 +114,7 @@ class FormReportes extends Formulario {
                         </div>
                     <?php endif; ?>
                 </div>
+                <?php endif; ?>
 
                 <!-- Tabla de Historial de Movimientos (Búsqueda) -->
                 <?php if (isset($_GET['buscar']) && $_GET['buscar'] !== ''): ?>
@@ -206,7 +208,7 @@ class FormReportes extends Formulario {
                             </button>
                         </div>
                         <?php if ($buscar !== ''): ?>
-                            <a href="../../controllers/getReportes.php?op=entrada" style="padding: 10px 15px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;">
+                            <a href="../../controllers/getReportes.php?op=entrada&buscar=&paginaEntrada=1" style="padding: 10px 15px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;">
                                 Limpiar
                             </a>
                         <?php endif; ?>
@@ -334,7 +336,7 @@ class FormReportes extends Formulario {
                             </button>
                         </div>
                         <?php if ($buscar !== ''): ?>
-                            <a href="../../controllers/getReportes.php?op=salida" style="padding: 10px 15px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;">
+                            <a href="../../controllers/getReportes.php?op=salida&buscar=&paginaSalida=1" style="padding: 10px 15px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;">
                                 Limpiar
                             </a>
                         <?php endif; ?>
