@@ -51,23 +51,23 @@ class FormReportes extends Formulario {
 
                 <!-- KARDEX - Tabla con Entradas, Salidas y Saldo Acumulado -->
                 <?php if (!isset($_GET['buscar']) || $_GET['buscar'] === ''): ?>
-                <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+                <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; margin-bottom: 20px; max-width: 1400px; margin-left: auto; margin-right: auto;">
                     <h3 style="background-color: #007bff; color: white; padding: 15px; margin: 0; border-bottom: 2px solid #0056b3;">
                         📊 Kardex de Inventario
                     </h3>
                     
-                    <div style="overflow-x: auto;">
-                        <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse; min-width: 800px;">
+                    <div style="overflow-x: auto; height: 350px; overflow-y: auto;">
+                        <table border="1" cellpadding="4" cellspacing="0" style="width: 100%; border-collapse: collapse; font-size: 12px; max-width: 100%;">
                             <tr style="background-color: #007bff; color: white;">
-                                <th>Fecha y Hora</th>
-                                <th>Tipo</th>
-                                <th>Producto</th>
-                                <th>Lote</th>
-                                <th>Entrada</th>
-                                <th>Salida</th>
-                                <th>Saldo</th>
-                                <th>Motivo</th>
-                                <th>Responsable</th>
+                                <th style="width: 10%; min-width: 90px;">Fecha/Hora</th>
+                                <th style="width: 6%; min-width: 50px;">Tipo</th>
+                                <th style="width: 15%; min-width: 100px;">Producto</th>
+                                <th style="width: 8%; min-width: 60px;">Lote</th>
+                                <th style="width: 6%; min-width: 45px;">Entrada</th>
+                                <th style="width: 6%; min-width: 45px;">Salida</th>
+                                <th style="width: 6%; min-width: 45px;">Saldo</th>
+                                <th style="width: 25%; min-width: 120px;">Motivo</th>
+                                <th style="width: 18%; min-width: 100px;">Responsable</th>
                             </tr>
                             <?php if (empty($kardex)): ?>
                                 <tr>
@@ -83,21 +83,21 @@ class FormReportes extends Formulario {
                                     $salida = ($k['tipo'] == 'salida') ? $k['cantidad'] : '';
                                     ?>
                                     <tr style="border-bottom: 1px solid #dee2e6;">
-                                        <td><?= $this->formatearFechaHora($k['fecha']) ?></td>
-                                        <td style="color:<?= $color ?>; font-weight:bold;"><?= strtoupper($k['tipo']) ?></td>
-                                        <td><?= htmlspecialchars($k['producto']) ?></td>
-                                        <td><?= htmlspecialchars($k['codigo_lote']) ?></td>
-                                        <td style="text-align: center; color: #28a745; font-weight:bold;">
+                                        <td style="font-size: 12px;"><?= $this->formatearFechaHora($k['fecha']) ?></td>
+                                        <td style="color:<?= $color ?>; font-weight:bold; font-size: 11px;"><?= strtoupper($k['tipo']) ?></td>
+                                        <td style="font-size: 12px;"><?= htmlspecialchars($k['producto']) ?></td>
+                                        <td style="font-size: 12px;"><?= htmlspecialchars($k['codigo_lote']) ?></td>
+                                        <td style="text-align: center; color: #28a745; font-weight:bold; font-size: 12px;">
                                             <?= $entrada ? '+' . $entrada : '-' ?>
                                         </td>
-                                        <td style="text-align: center; color: #dc3545; font-weight:bold;">
+                                        <td style="text-align: center; color: #dc3545; font-weight:bold; font-size: 12px;">
                                             <?= $salida ? '-' . $salida : '-' ?>
                                         </td>
-                                        <td style="text-align: center; background-color: #e7f3ff; font-weight:bold; color: #007bff;">
+                                        <td style="text-align: center; background-color: #e7f3ff; font-weight:bold; color: #007bff; font-size: 12px;">
                                             <?= $k['saldo'] ?>
                                         </td>
-                                        <td><?= htmlspecialchars($k['motivo']) ?></td>
-                                        <td><?= htmlspecialchars($k['nombre_usuario'] ?? $k['usuario'] ?? 'Sistema') ?></td>
+                                        <td style="font-size: 12px;"><?= htmlspecialchars($k['motivo']) ?></td>
+                                        <td style="font-size: 12px;"><?= htmlspecialchars($k['nombre_usuario'] ?? $k['usuario'] ?? 'Sistema') ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -118,12 +118,13 @@ class FormReportes extends Formulario {
 
                 <!-- Tabla de Historial de Movimientos (Búsqueda) -->
                 <?php if (isset($_GET['buscar']) && $_GET['buscar'] !== ''): ?>
-                    <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+                    <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; margin-bottom: 20px; max-width: 1400px; margin-left: auto; margin-right: auto;">
                         <h3 style="background-color: #f8f9fa; padding: 15px; margin: 0; border-bottom: 2px solid #dee2e6; color: #495057;">
                             Resultados de Búsqueda
                         </h3>
                         
-                        <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+                        <div style="overflow-x: auto; height: 350px; overflow-y: auto;">
+                        <table border="1" cellpadding="4" cellspacing="0" style="width: 100%; border-collapse: collapse; font-size: 12px; max-width: 100%;">
                             <tr style="background-color: #e9ecef;">
                                 <th>Fecha y Hora</th>
                                 <th>Tipo</th>
@@ -159,6 +160,7 @@ class FormReportes extends Formulario {
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </table>
+                        </div>
                     </div>
                 <?php endif; ?>
             </div>
@@ -232,7 +234,9 @@ class FormReportes extends Formulario {
                 </div>
 
                 <!-- Tabla de Registros de Entrada: Muestra movimientos de entrada con paginación -->
-                <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse; background: white;">
+                <div style="max-width: 1400px; margin-left: auto; margin-right: auto;">
+                <div style="overflow-x: auto; height: 350px; overflow-y: auto;">
+                <table border="1" cellpadding="4" cellspacing="0" style="width: 100%; border-collapse: collapse; background: white; font-size: 12px; max-width: 100%;">
                     <tr style="background-color: #28a745; color: white;">
                         <th>Fecha y Hora</th>
                         <th>Producto</th>
@@ -260,6 +264,8 @@ class FormReportes extends Formulario {
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </table>
+                </div>
+                </div>
 
                 <!-- Navegación de Páginas: Permite navegar entre páginas de resultados -->
                 <?php if ($totalPaginas > 1): ?>
@@ -360,7 +366,9 @@ class FormReportes extends Formulario {
                 </div>
 
                 <!-- Tabla de Registros de Salida: Muestra movimientos de salida con paginación -->
-                <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse; background: white;">
+                <div style="max-width: 1400px; margin-left: auto; margin-right: auto;">
+                <div style="overflow-x: auto; height: 350px; overflow-y: auto;">
+                <table border="1" cellpadding="4" cellspacing="0" style="width: 100%; border-collapse: collapse; background: white; font-size: 12px; max-width: 100%;">
                     <tr style="background-color: #ffc107; color: black;">
                         <th>Fecha y Hora</th>
                         <th>Producto</th>
@@ -388,6 +396,8 @@ class FormReportes extends Formulario {
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </table>
+                </div>
+                </div>
 
                 <!-- Navegación de Páginas: Permite navegar entre páginas de resultados -->
                 <?php if ($totalPaginas > 1): ?>

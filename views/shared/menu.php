@@ -3,6 +3,9 @@
 require_once __DIR__ . '/../../core/Session.php';
 Session::start();
 $rol = Session::get('rol') ?? 'invitado';
+
+// Detectar si estamos en la sección de reportes
+$esReportes = (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], 'getReportes.php') !== false);
 ?>
 
 <nav class="main-menu">
@@ -12,10 +15,14 @@ $rol = Session::get('rol') ?? 'invitado';
     <a href="../../controllers/getCategorias.php?op=listar">Administrar Categorías</a>
     <a href="../../controllers/getProveedores.php?op=listar">Administrar Proveedores</a>
     <a href="../../controllers/getMovimientos.php?op=listar">Gestionar Entradas/Salidas</a>
-    <a href="../../controllers/getReportes.php?op=listar">Gestión de Reportes</a>
+    <?php if (!$esReportes): ?>
+        <a href="../../controllers/getReportes.php?op=listar">Gestión de Reportes</a>
+    <?php endif; ?>
 
 <?php elseif ($rol === 'analista'): ?>
-    <a href="../../controllers/getReportes.php?op=listar">Gestión de Reportes</a>
+    <?php if (!$esReportes): ?>
+        <a href="../../controllers/getReportes.php?op=listar">Gestión de Reportes</a>
+    <?php endif; ?>
 
 <?php elseif ($rol === 'auxiliar'): ?>
     <a href="../../controllers/getMovimientos.php?op=listar">Gestionar Entradas/Salidas</a>

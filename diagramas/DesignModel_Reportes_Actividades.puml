@@ -1,0 +1,163 @@
+@startuml DesignModel_Reportes_DiagramaActividades
+' Diagrama de Actividades - Módulo Gestión de Reportes
+' Análisis riguroso del código - Patrón MVC
+' Flujo completo del sistema de reportes
+
+skinparam activity {
+    BackgroundColor White
+    BorderColor Black
+    FontSize 12
+}
+skinparam arrow {
+    Color Black
+}
+skinparam note {
+    BackgroundColor #FFF9C4
+    BorderColor Black
+}
+
+title Diagrama de Actividades - Gestión de Reportes
+
+start
+
+:Usuario accede a "Gestión de Reportes";
+
+:getReportes.php recibe petición GET/POST;
+
+:ReporteController valida sesión;
+
+if (¿Sesión válida?) then (no)
+    :Mostrar mensaje "Acceso denegado";
+    stop
+else (sí)
+    if (¿Rol es admin o analista?) then (no)
+        :Mostrar mensaje "Acceso denegado. Solo admin o analista";
+        stop
+    else (sí)
+        :Determinar operación (op);
+        
+        if (¿op = 'listar' o 'panel'?) then (sí)
+            :gestionar($buscar);
+            
+            if (¿Hay búsqueda?) then (sí)
+                :Movimiento->obtenerFiltrados($buscar);
+                :Mostrar resultados de búsqueda;
+            else (no)
+                :Movimiento->obtenerKardex();
+                :Movimiento->obtenerTodos();
+                :Mostrar Kardex completo con saldo acumulado;
+            endif
+            
+            :Mostrar vista principal con opciones:
+            - Botón "Generar Reporte de Entrada"
+            - Botón "Generar Reporte de Salida"
+            - Campo de búsqueda
+            - Botón "Exportar Kardex PDF" (si hay Kardex);
+            
+        elseif (¿op = 'entrada'?) then (sí)
+            :mostrarEntrada($fechaInicio, $fechaFin, $pagina, $buscar);
+            
+            if (¿Hay búsqueda?) then (sí)
+                :Movimiento->obtenerFiltrados($buscar);
+                :Filtrar solo entradas;
+                :Aplicar paginación manual;
+            else (no)
+                :Movimiento->contarPorTipo('entrada');
+                :Movimiento->obtenerPorTipoPaginado('entrada', $pagina, 10);
+            endif
+            
+            :Mostrar tabla de entradas paginada;
+            :Mostrar opciones:
+            - Campo de búsqueda
+            - Botón "Buscar"
+            - Botón "Limpiar" (si hay búsqueda)
+            - Enlaces de paginación
+            - Botón "Exportar PDF";
+            
+        elseif (¿op = 'salida'?) then (sí)
+            :mostrarSalida($fechaInicio, $fechaFin, $pagina, $buscar);
+            
+            if (¿Hay búsqueda?) then (sí)
+                :Movimiento->obtenerFiltrados($buscar);
+                :Filtrar solo salidas;
+                :Aplicar paginación manual;
+            else (no)
+                :Movimiento->contarPorTipo('salida');
+                :Movimiento->obtenerPorTipoPaginado('salida', $pagina, 10);
+            endif
+            
+            :Mostrar tabla de salidas paginada;
+            :Mostrar opciones:
+            - Campo de búsqueda
+            - Botón "Buscar"
+            - Botón "Limpiar" (si hay búsqueda)
+            - Enlaces de paginación
+            - Botón "Exportar PDF";
+            
+        endif
+        
+        partition "Acciones del Usuario" {
+            if (¿Click en "Generar Reporte de Entrada"?) then (sí)
+                :POST btnIrEntrada;
+                :mostrarEntrada('', '', 1, '');
+                :Mostrar vista de reporte de entrada;
+            elseif (¿Click en "Generar Reporte de Salida"?) then (sí)
+                :POST btnIrSalida;
+                :mostrarSalida('', '', 1, '');
+                :Mostrar vista de reporte de salida;
+            elseif (¿Click en "Buscar" en vista principal?) then (sí)
+                :GET ?op=listar&buscar=texto;
+                :gestionar($buscar);
+                :Mostrar resultados de búsqueda;
+            elseif (¿Click en "Buscar" en reporte entrada?) then (sí)
+                :POST btnGenerarEntrada;
+                :mostrarEntrada('', '', $pagina, $buscar);
+                :Mostrar resultados filtrados de entrada;
+            elseif (¿Click en "Buscar" en reporte salida?) then (sí)
+                :POST btnGenerarSalida;
+                :mostrarSalida('', '', $pagina, $buscar);
+                :Mostrar resultados filtrados de salida;
+            elseif (¿Click en "Limpiar"?) then (sí)
+                :GET ?op=entrada/salida&buscar=&pagina=1;
+                :mostrarEntrada/mostrarSalida('', '', 1, '');
+                :Mostrar vista sin filtros;
+            elseif (¿Click en paginación?) then (sí)
+                :GET ?op=entrada/salida&paginaEntrada/paginaSalida=N;
+                :mostrarEntrada/mostrarSalida('', '', $pagina, $buscar);
+                :Mostrar página N;
+            elseif (¿Click en "Exportar PDF"?) then (sí)
+                :GET export_pdf.php?tipo=entrada/salida/todos;
+                :Generar PDF con datos;
+                :Descargar PDF;
+            elseif (¿Click en "Retroceder"?) then (sí)
+                :GET ?op=listar;
+                :gestionar('');
+                :Volver a vista principal;
+            endif
+        }
+        
+    endif
+endif
+
+stop
+
+note right
+    **Validaciones:**
+    - Sesión activa requerida
+    - Rol: admin o analista
+    - Operaciones permitidas: listar, entrada, salida
+    - Búsqueda general: producto, lote, fecha, motivo, usuario
+    - Paginación: 10 registros por página
+end note
+
+note right
+    **Flujos principales:**
+    1. Vista principal con Kardex
+    2. Búsqueda general de movimientos
+    3. Reporte de entrada con paginación
+    4. Reporte de salida con paginación
+    5. Exportación a PDF
+end note
+
+@enduml
+
